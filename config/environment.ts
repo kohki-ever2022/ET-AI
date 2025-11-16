@@ -68,7 +68,11 @@ interface EnvironmentConfig {
  * Gets environment variable with fallback
  */
 function getEnv(key: string, fallback: string = ''): string {
-  return import.meta.env[key] || fallback;
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env[key] || fallback;
+  }
+  // Fallback for Node.js environment (tests, etc.)
+  return (process.env[key] as string) || fallback;
 }
 
 /**

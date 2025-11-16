@@ -19,6 +19,13 @@ jest.mock('firebase/functions');
 
 const mockHttpsCallable = httpsCallable as jest.MockedFunction<typeof httpsCallable>;
 
+// Helper to create mock callable with stream property
+function createMockCallable(mockFn: jest.Mock): any {
+  const callable = mockFn as any;
+  callable.stream = jest.fn();
+  return callable;
+}
+
 describe('VectorSearch Component', () => {
   const mockProjectId = 'test-project-123';
   const mockOnResultSelect = jest.fn();
@@ -81,7 +88,7 @@ describe('VectorSearch Component', () => {
         },
       });
 
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} />);
 
@@ -99,7 +106,7 @@ describe('VectorSearch Component', () => {
 
     it('should not search with empty query', () => {
       const mockVectorSearch = jest.fn();
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} />);
 
@@ -129,7 +136,7 @@ describe('VectorSearch Component', () => {
         },
       });
 
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} />);
 
@@ -178,7 +185,7 @@ describe('VectorSearch Component', () => {
         },
       });
 
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} />);
 
@@ -211,7 +218,7 @@ describe('VectorSearch Component', () => {
         },
       });
 
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} />);
 
@@ -235,7 +242,7 @@ describe('VectorSearch Component', () => {
         },
       });
 
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} />);
 
@@ -268,7 +275,7 @@ describe('VectorSearch Component', () => {
         },
       });
 
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} onResultSelect={mockOnResultSelect} />);
 
@@ -288,7 +295,7 @@ describe('VectorSearch Component', () => {
     it('should display error message on search failure', async () => {
       const mockVectorSearch = jest.fn().mockRejectedValue(new Error('Search failed'));
 
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} />);
 
@@ -320,7 +327,7 @@ describe('VectorSearch Component', () => {
           )
       );
 
-      mockHttpsCallable.mockReturnValue(mockVectorSearch);
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
       render(<VectorSearch projectId={mockProjectId} />);
 

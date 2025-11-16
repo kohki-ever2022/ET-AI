@@ -136,6 +136,11 @@ export interface Knowledge {
   chunkIndex?: number;
   totalChunks?: number;
   version?: number;
+  metadata?: {
+    documentName?: string;
+    pageNumber?: number;
+    sectionTitle?: string;
+  };
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

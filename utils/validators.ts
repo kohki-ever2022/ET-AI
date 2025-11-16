@@ -113,8 +113,8 @@ export const UserRoleSchema = z.enum(['admin', 'employee']);
 /**
  * Zodバリデーションのエラーメッセージを整形
  */
-export function formatZodError(error: z.ZodError): string {
-  return error.errors.map((err) => `${err.path.join('.')}: ${err.message}`).join(', ');
+export function formatZodError(error: z.ZodError<unknown>): string {
+  return error.issues.map((err) => `${err.path.join('.')}: ${err.message}`).join(', ');
 }
 
 /**

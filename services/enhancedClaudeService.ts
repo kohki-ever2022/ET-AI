@@ -139,14 +139,12 @@ export async function callClaudeWithKnowledge(
   );
 
   // Extract and store learning patterns
-  if (response.success) {
-    await extractAndStoreLearningPatterns(
-      projectId,
-      userMessage,
-      response.content,
-      response.usage
-    );
-  }
+  await extractAndStoreLearningPatterns(
+    projectId,
+    userMessage,
+    response.content,
+    response.usage
+  );
 
   return response;
 }
@@ -321,12 +319,15 @@ export async function batchProcessWithKnowledge(
     } catch (error) {
       console.error('Batch processing error:', error);
       responses.push({
-        success: false,
         content: '',
-        usage: { inputTokens: 0, outputTokens: 0 },
+        usage: {
+          inputTokens: 0,
+          cacheCreationInputTokens: 0,
+          cacheReadInputTokens: 0,
+          outputTokens: 0,
+        },
         cacheHitRate: 0,
         costSavings: 0,
-        securityFlags: [],
       });
     }
   }

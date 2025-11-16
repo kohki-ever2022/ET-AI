@@ -42,7 +42,7 @@ export async function buildCachedSystemPrompt(
   userMessage: string,
   getSystemPrompts: () => Promise<SystemPromptSection[]>,
   searchProjectKnowledge: (projectId: string, query: string) => Promise<Knowledge[]>
-): Promise<CachedSystemPrompt> {
+): Promise<CachedContent[]> {
   // 第2層：IR専門知識ベース（Firestoreから取得）
   const irKnowledgeSections = await getSystemPrompts();
   const irKnowledge = irKnowledgeSections
@@ -75,17 +75,9 @@ export async function buildCachedSystemPrompt(
       text: `【プロジェクト固有ナレッジ】\n\n${projectKnowledgeText}`,
       cache_control: { type: 'ephemeral' }, // ← キャッシュ境界3
     },
-    // 第4層：ユーザー入力（キャッシュしない）
-    {
-      type: 'text',
-      text: `【現在のリクエスト】\n${userMessage}`,
-    },
   ];
 
-  return {
-    role: 'user',
-    content,
-  };
+  return content;
 }
 
 /**
@@ -127,7 +119,7 @@ export async function callClaudeWithCaching(
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
-      system: [systemPrompt],
+      system: systemPrompt,
       messages: [
         ...conversationHistory,
         {
@@ -221,7 +213,7 @@ export async function callClaudeWithCachingStream(
   const stream = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,
-    system: [systemPrompt],
+    system: systemPrompt,
     messages: [
       ...conversationHistory,
       {
@@ -362,7 +354,7 @@ export class SmartCacheWarmer {
       await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1, // 出力を最小化
-        system: [systemPrompt],
+        system: systemPrompt,
         messages: [{ role: 'user', content: 'ping' }],
       });
     } catch (error) {

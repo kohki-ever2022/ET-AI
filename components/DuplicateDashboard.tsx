@@ -314,7 +314,7 @@ export const DuplicateDashboard: React.FC<DuplicateDashboardProps> = ({ projectI
                               key={id}
                               className="rounded-full bg-blue-100 px-3 py-1 text-xs text-blue-800"
                             >
-                              {(score * 100).toFixed(0)}%
+                              {((score as number) * 100).toFixed(0)}%
                             </span>
                           ))}
                         {Object.keys(group.similarityScores).length > 5 && (

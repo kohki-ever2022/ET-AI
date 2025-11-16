@@ -10,6 +10,7 @@
  */
 
 import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
 import { db, serverTimestamp } from '../config/firebase';
 
 interface RateLimitConfig {
@@ -144,6 +145,7 @@ async function checkRateLimit(
     console.error('Rate limit check error:', error);
 
     // On error, allow request (fail open)
+    const now = new Date();
     return {
       allowed: true,
       remaining: config.maxRequests,

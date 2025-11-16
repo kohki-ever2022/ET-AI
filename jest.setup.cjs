@@ -1,5 +1,5 @@
 // Jest setup file
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
 
 // Mock Firebase
 jest.mock('firebase/app', () => ({
@@ -33,7 +33,11 @@ jest.mock('firebase/storage', () => ({
 
 jest.mock('firebase/functions', () => ({
   getFunctions: jest.fn(),
-  httpsCallable: jest.fn(),
+  httpsCallable: jest.fn(() => {
+    const mockCallable = jest.fn();
+    mockCallable.stream = jest.fn();
+    return mockCallable;
+  }),
 }));
 
 // Mock window.matchMedia
