@@ -1,0 +1,300 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================================
+    // Helper Functions
+    // ============================================================================
+
+    /**
+     * Check if user is authenticated
+     */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /**
+     * Check if user email has @trias.co.jp domain
+     */
+    function isTriasEmail() {
+      return isAuthenticated() &&
+             request.auth.token.email.matches('.*@trias[.]co[.]jp$');
+    }
+
+    /**
+     * Check if user is admin
+     */
+    function isAdmin() {
+      return isTriasEmail() &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    /**
+     * Check if user is the document owner
+     */
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    /**
+     * Check if user is member of the project
+     */
+    function isProjectMember(projectId) {
+      return isTriasEmail() &&
+             (isAdmin() ||
+              request.auth.uid in get(/databases/$(database)/documents/projects/$(projectId)).data.members);
+    }
+
+    /**
+     * Validate email domain on user creation
+     */
+    function hasValidEmail(email) {
+      return email.matches('.*@trias[.]co[.]jp$');
+    }
+
+    // ============================================================================
+    // Users Collection
+    // ============================================================================
+
+    match /users/{userId} {
+      // Anyone with @trias.co.jp can read user profiles
+      allow read: if isTriasEmail();
+
+      // Users can create their own profile, admins can create any profile
+      allow create: if (isOwner(userId) && hasValidEmail(request.resource.data.email)) ||
+                       isAdmin();
+
+      // Users can update their own profile (except role), admins can update any profile
+      allow update: if (isOwner(userId) &&
+                       request.resource.data.role == resource.data.role) ||
+                       isAdmin();
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Projects Collection
+    // ============================================================================
+
+    match /projects/{projectId} {
+      // Project members can read
+      allow read: if isProjectMember(projectId);
+
+      // Only admins can create projects
+      allow create: if isAdmin() &&
+                       request.resource.data.companyName is string &&
+                       request.resource.data.companyName.size() > 0;
+
+      // Only admins can update projects
+      allow update: if isAdmin();
+
+      // Only admins can delete projects
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Channels Collection
+    // ============================================================================
+
+    match /channels/{channelId} {
+      // Shared channels: all authenticated users can read
+      // Personal channels: only creator and viewableBy users can read
+      // Admins can read all channels
+      allow read: if isAdmin() ||
+                     (isTriasEmail() && resource.data.visibility.type == 'shared') ||
+                     (isTriasEmail() &&
+                      resource.data.visibility.type == 'personal' &&
+                      (isOwner(resource.data.createdBy) ||
+                       request.auth.uid in resource.data.visibility.viewableBy));
+
+      // All authenticated users can create channels
+      allow create: if isTriasEmail() &&
+                       request.resource.data.name is string &&
+                       request.resource.data.name.size() > 0 &&
+                       request.resource.data.projectId is string;
+
+      // Only creator or admin can update channel
+      allow update: if isAdmin() || isOwner(resource.data.createdBy);
+
+      // Only creator or admin can delete channel
+      allow delete: if isAdmin() || isOwner(resource.data.createdBy);
+    }
+
+    // ============================================================================
+    // Chats Collection
+    // ============================================================================
+
+    match /chats/{chatId} {
+      // Users can read chats in channels they have access to
+      allow read: if isTriasEmail() &&
+                     (isAdmin() ||
+                      exists(/databases/$(database)/documents/channels/$(resource.data.channelId)));
+
+      // Users can create chats in channels they have access to
+      allow create: if isTriasEmail() &&
+                       request.resource.data.userMessage is string &&
+                       request.resource.data.userMessage.size() > 0 &&
+                       request.resource.data.userMessage.size() <= 50000 &&
+                       exists(/databases/$(database)/documents/channels/$(request.resource.data.channelId));
+
+      // Users can update their own unapproved chats, admins can update any
+      allow update: if isAdmin() ||
+                       (isOwner(resource.data.userId) && resource.data.approvedAt == null);
+
+      // Only admins can delete chats
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Knowledge Collection
+    // ============================================================================
+
+    match /knowledge/{knowledgeId} {
+      // Project members can read knowledge
+      allow read: if isProjectMember(resource.data.projectId);
+
+      // All authenticated users can create knowledge (will be deduplicated)
+      allow create: if isTriasEmail() &&
+                       request.resource.data.content is string &&
+                       request.resource.data.content.size() > 0 &&
+                       request.resource.data.projectId is string;
+
+      // Only admins can update knowledge
+      allow update: if isAdmin();
+
+      // Only admins can delete knowledge
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Documents Collection
+    // ============================================================================
+
+    match /documents/{documentId} {
+      // Project members can read documents
+      allow read: if isProjectMember(resource.data.projectId);
+
+      // Authenticated users can upload documents
+      allow create: if isTriasEmail() &&
+                       request.resource.data.filename is string &&
+                       request.resource.data.projectId is string &&
+                       request.resource.data.size <= 5242880; // 5MB limit
+
+      // Only uploader or admin can update document metadata
+      allow update: if isAdmin() || isOwner(resource.data.uploadedBy);
+
+      // Only uploader or admin can delete document
+      allow delete: if isAdmin() || isOwner(resource.data.uploadedBy);
+    }
+
+    // ============================================================================
+    // System Prompts Collection
+    // ============================================================================
+
+    match /system_prompts/{promptId} {
+      // All authenticated users can read system prompts
+      allow read: if isTriasEmail();
+
+      // Only admins can create system prompts
+      allow create: if isAdmin() &&
+                       request.resource.data.category in ['ir-framework', 'tcfd', 'human-capital', 'sx-concept'] &&
+                       request.resource.data.content is string &&
+                       request.resource.data.content.size() > 0;
+
+      // Only admins can update system prompts
+      allow update: if isAdmin();
+
+      // Only admins can delete system prompts
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Learning Patterns Collection
+    // ============================================================================
+
+    match /learningPatterns/{patternId} {
+      // Project members can read learning patterns
+      allow read: if isProjectMember(resource.data.projectId);
+
+      // System can create learning patterns (via Cloud Functions)
+      allow create: if isTriasEmail();
+
+      // Only admins can update patterns
+      allow update: if isAdmin();
+
+      // Only admins can delete patterns
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Cache Metrics Collection
+    // ============================================================================
+
+    match /cacheMetrics/{metricId} {
+      // Only admins can read cache metrics
+      allow read: if isAdmin();
+
+      // System can create metrics (via Cloud Functions)
+      allow create: if isTriasEmail();
+
+      // No updates allowed
+      allow update: if false;
+
+      // Only admins can delete old metrics
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Error Logs Collection
+    // ============================================================================
+
+    match /error_logs/{logId} {
+      // Only admins can read error logs
+      allow read: if isAdmin();
+
+      // System can create error logs
+      allow create: if isTriasEmail();
+
+      // No updates allowed
+      allow update: if false;
+
+      // Only admins can delete old logs
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Chat Status Collection (Real-time presence)
+    // ============================================================================
+
+    match /chat_status/{statusId} {
+      // Users can read status in channels they have access to
+      allow read: if isTriasEmail();
+
+      // Users can create/update their own status
+      allow create, update: if isOwner(request.resource.data.userId);
+
+      // Users can delete their own status
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // ============================================================================
+    // Knowledge Groups Collection
+    // ============================================================================
+
+    match /knowledgeGroups/{groupId} {
+      // Project members can read knowledge groups
+      allow read: if isProjectMember(resource.data.projectId);
+
+      // System can create groups (via deduplication Cloud Function)
+      allow create: if isTriasEmail();
+
+      // Only admins can update groups
+      allow update: if isAdmin();
+
+      // Only admins can delete groups
+      allow delete: if isAdmin();
+    }
+  }
+}

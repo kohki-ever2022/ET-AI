@@ -1,0 +1,83 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    /**
+     * Check if user is authenticated
+     */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /**
+     * Check if user email has @trias.co.jp domain
+     */
+    function isTriasEmail() {
+      return isAuthenticated() &&
+             request.auth.token.email.matches('.*@trias[.]co[.]jp$');
+    }
+
+    /**
+     * Check if file size is within limit (5MB)
+     */
+    function isValidFileSize() {
+      return request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    /**
+     * Check if file type is allowed (PDF or DOCX)
+     */
+    function isValidFileType() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    }
+
+    // ============================================================================
+    // Documents Storage (uploaded PDF/DOCX files)
+    // ============================================================================
+
+    match /documents/{projectId}/{documentId} {
+      // Users can read documents in projects they're members of
+      allow read: if isTriasEmail();
+
+      // Users can upload documents to projects they're members of
+      allow create: if isTriasEmail() &&
+                       isValidFileSize() &&
+                       isValidFileType();
+
+      // Only the uploader can update their document
+      allow update: if false; // Files are immutable
+
+      // Only the uploader or admin can delete
+      allow delete: if isTriasEmail();
+    }
+
+    // ============================================================================
+    // Processed Text Storage (extracted text from documents)
+    // ============================================================================
+
+    match /processed/{projectId}/{documentId}/text.txt {
+      // Users can read processed text
+      allow read: if isTriasEmail();
+
+      // Only Cloud Functions can write processed text
+      allow create, update: if false;
+
+      // Only admins can delete processed text
+      allow delete: if isTriasEmail();
+    }
+
+    // ============================================================================
+    // Temporary Uploads (for processing)
+    // ============================================================================
+
+    match /temp/{userId}/{filename} {
+      // Users can only access their own temp files
+      allow read, write, delete: if isAuthenticated() &&
+                                    request.auth.uid == userId &&
+                                    isValidFileSize() &&
+                                    isValidFileType();
+    }
+  }
+}
