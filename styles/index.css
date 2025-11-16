@@ -1,0 +1,235 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Apple HIG カスタムスタイル */
+@layer base {
+  /* SF Pro フォントのフォールバック設定 */
+  body {
+    @apply font-sf-pro antialiased;
+  }
+
+  /* Reduce Motion 対応 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* スクロールバーのスタイリング（WebKit） */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-apple-bg-secondary-light dark:bg-apple-bg-secondary-dark;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-apple-fill-tertiary-light dark:bg-apple-fill-tertiary-dark rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-apple-fill-secondary-light dark:bg-apple-fill-secondary-dark;
+  }
+
+  /* フォーカスアウトラインのグローバル設定 */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-apple-blue-light dark:ring-apple-blue-dark ring-offset-2 ring-offset-apple-bg-primary-light dark:ring-offset-apple-bg-primary-dark;
+  }
+}
+
+@layer components {
+  /* Apple Material効果（背景ぼかし） */
+  .apple-material {
+    @apply bg-apple-bg-primary-light/70 dark:bg-apple-bg-primary-dark/70;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .apple-material-secondary {
+    @apply bg-apple-bg-secondary-light/70 dark:bg-apple-bg-secondary-dark/70;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* ボタンベーススタイル */
+  .btn-apple-base {
+    @apply min-h-touch min-w-touch font-sf-pro text-apple-body inline-flex items-center justify-center;
+    @apply transition-all duration-apple-normal ease-apple-ease;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  }
+
+  /* プライマリボタン */
+  .btn-apple-primary {
+    @apply btn-apple-base;
+    @apply bg-apple-blue-light dark:bg-apple-blue-dark text-white;
+    @apply rounded-apple-button px-apple-lg py-3;
+    @apply shadow-apple-button hover:shadow-apple-hover;
+    @apply active:scale-95;
+    @apply focus-visible:ring-apple-blue-light dark:focus-visible:ring-apple-blue-dark;
+  }
+
+  /* セカンダリボタン（ボーダー付き） */
+  .btn-apple-secondary {
+    @apply btn-apple-base;
+    @apply border-2 border-apple-blue-light dark:border-apple-blue-dark;
+    @apply text-apple-blue-light dark:text-apple-blue-dark;
+    @apply rounded-apple-button px-apple-lg py-3;
+    @apply hover:bg-apple-fill-quaternary-light dark:hover:bg-apple-fill-quaternary-dark;
+    @apply active:scale-95;
+    @apply focus-visible:ring-apple-blue-light dark:focus-visible:ring-apple-blue-dark;
+  }
+
+  /* テキストボタン */
+  .btn-apple-text {
+    @apply btn-apple-base;
+    @apply text-apple-blue-light dark:text-apple-blue-dark;
+    @apply px-apple-md py-2;
+    @apply hover:bg-apple-fill-quaternary-light dark:hover:bg-apple-fill-quaternary-dark;
+    @apply rounded-apple-button;
+    @apply focus-visible:ring-apple-blue-light dark:focus-visible:ring-apple-blue-dark;
+  }
+
+  /* カプセル型ボタン */
+  .btn-apple-capsule {
+    @apply btn-apple-primary rounded-apple-capsule px-apple-xl;
+  }
+
+  /* 入力フィールド */
+  .input-apple {
+    @apply w-full min-h-touch px-apple-base py-3;
+    @apply bg-apple-fill-secondary-light dark:bg-apple-fill-secondary-dark;
+    @apply rounded-apple-field font-sf-pro text-apple-body;
+    @apply text-apple-label-light dark:text-apple-label-dark;
+    @apply placeholder:text-apple-label-tertiary-light dark:placeholder:text-apple-label-tertiary-dark;
+    @apply border-2 border-transparent;
+    @apply transition-colors duration-apple-normal;
+    @apply focus:border-apple-blue-light dark:focus:border-apple-blue-dark;
+    @apply focus:outline-none focus:ring-0;
+  }
+
+  /* エラー状態の入力フィールド */
+  .input-apple-error {
+    @apply input-apple;
+    @apply border-apple-red-light dark:border-apple-red-dark;
+    @apply focus:border-apple-red-light dark:focus:border-apple-red-dark;
+  }
+
+  /* カードコンポーネント */
+  .card-apple {
+    @apply bg-apple-bg-secondary-light dark:bg-apple-bg-secondary-dark;
+    @apply rounded-apple-card shadow-apple-card overflow-hidden;
+    @apply transition-shadow duration-apple-normal;
+  }
+
+  .card-apple-hover {
+    @apply card-apple hover:shadow-apple-floating;
+    @apply cursor-pointer;
+  }
+
+  /* リスト項目 */
+  .list-item-apple {
+    @apply min-h-touch px-apple-base py-apple-md;
+    @apply hover:bg-apple-fill-quaternary-light dark:hover:bg-apple-fill-quaternary-dark;
+    @apply cursor-pointer transition-colors duration-apple-fast;
+    @apply border-b border-apple-separator-light dark:border-apple-separator-dark last:border-b-0;
+  }
+
+  /* セパレーター */
+  .separator-apple {
+    @apply h-px bg-apple-separator-light dark:bg-apple-separator-dark;
+  }
+
+  .separator-apple-vertical {
+    @apply w-px bg-apple-separator-light dark:bg-apple-separator-dark;
+  }
+
+  /* セクションヘッダー */
+  .section-header-apple {
+    @apply font-sf-pro text-apple-subhead font-sf-semibold;
+    @apply text-apple-label-secondary-light dark:text-apple-label-secondary-dark;
+    @apply uppercase tracking-wider;
+    @apply px-apple-base py-apple-sm;
+  }
+}
+
+@layer utilities {
+  /* テキストユーティリティ */
+  .text-primary {
+    @apply text-apple-label-light dark:text-apple-label-dark;
+  }
+
+  .text-secondary {
+    @apply text-apple-label-secondary-light dark:text-apple-label-secondary-dark;
+  }
+
+  .text-tertiary {
+    @apply text-apple-label-tertiary-light dark:text-apple-label-tertiary-dark;
+  }
+
+  .text-quaternary {
+    @apply text-apple-label-quaternary-light dark:text-apple-label-quaternary-dark;
+  }
+
+  /* 背景ユーティリティ */
+  .bg-primary {
+    @apply bg-apple-bg-primary-light dark:bg-apple-bg-primary-dark;
+  }
+
+  .bg-secondary {
+    @apply bg-apple-bg-secondary-light dark:bg-apple-bg-secondary-dark;
+  }
+
+  .bg-tertiary {
+    @apply bg-apple-bg-tertiary-light dark:bg-apple-bg-tertiary-dark;
+  }
+
+  /* システムカラーユーティリティ */
+  .text-system-blue {
+    @apply text-apple-blue-light dark:text-apple-blue-dark;
+  }
+
+  .text-system-green {
+    @apply text-apple-green-light dark:text-apple-green-dark;
+  }
+
+  .text-system-red {
+    @apply text-apple-red-light dark:text-apple-red-dark;
+  }
+
+  .bg-system-blue {
+    @apply bg-apple-blue-light dark:bg-apple-blue-dark;
+  }
+
+  .bg-system-green {
+    @apply bg-apple-green-light dark:bg-apple-green-dark;
+  }
+
+  .bg-system-red {
+    @apply bg-apple-red-light dark:bg-apple-red-dark;
+  }
+
+  /* セーフエリアパディング（モバイル対応） */
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-inset-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-inset-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
