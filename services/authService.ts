@@ -122,14 +122,6 @@ export function canViewChannel(
 }
 
 /**
- * 権限チェック: チャット承認
- * 全ての社員が承認可能
- */
-export function canApproveChat(user: User): boolean {
-  return true; // すべてのユーザーが自分のチャットを承認可能
-}
-
-/**
  * 権限チェック: 他人のチャット承認
  */
 export function canApproveOthersChat(user: User): boolean {
@@ -241,7 +233,7 @@ export function canViewProject(
   }
 
   // プロジェクトメンバーは閲覧可能
-  return project.members.includes(user.id || user.uid || '');
+  return project.members.includes(user.uid);
 }
 
 /**
@@ -262,7 +254,7 @@ export function canEditChannel(
   }
 
   // 作成者は編集可能
-  return channel.createdBy === (user.id || user.uid);
+  return channel.createdBy === user.uid;
 }
 
 /**

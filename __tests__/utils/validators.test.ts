@@ -199,8 +199,8 @@ describe('Validators', () => {
       const result = safeValidate(ProjectSchema, invalidProject);
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toBeTruthy();
-        expect(typeof result.error).toBe('string');
+        expect((result as { success: false; error: string }).error).toBeTruthy();
+        expect(typeof (result as { success: false; error: string }).error).toBe('string');
       }
     });
   });

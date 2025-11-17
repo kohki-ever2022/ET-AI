@@ -119,7 +119,7 @@ describe('Auth Service', () => {
   describe('canCreateProject', () => {
     it('should allow admin to create projects', () => {
       const adminUser: User = {
-        id: 'user-1',
+        uid: 'user-1',
         email: 'admin@trias.co.jp',
         displayName: 'Admin User',
         role: 'admin',
@@ -132,7 +132,7 @@ describe('Auth Service', () => {
 
     it('should not allow employee to create projects', () => {
       const employeeUser: User = {
-        id: 'user-2',
+        uid: 'user-2',
         email: 'employee@trias.co.jp',
         displayName: 'Employee User',
         role: 'employee',
@@ -147,7 +147,7 @@ describe('Auth Service', () => {
   describe('canDeleteProject', () => {
     it('should allow admin to delete projects', () => {
       const adminUser: User = {
-        id: 'user-1',
+        uid: 'user-1',
         email: 'admin@trias.co.jp',
         displayName: 'Admin User',
         role: 'admin',
@@ -160,7 +160,7 @@ describe('Auth Service', () => {
 
     it('should not allow employee to delete projects', () => {
       const employeeUser: User = {
-        id: 'user-2',
+        uid: 'user-2',
         email: 'employee@trias.co.jp',
         displayName: 'Employee User',
         role: 'employee',
@@ -175,7 +175,7 @@ describe('Auth Service', () => {
   describe('canUpdateSystemPrompt', () => {
     it('should allow admin to update system prompts', () => {
       const adminUser: User = {
-        id: 'user-1',
+        uid: 'user-1',
         email: 'admin@trias.co.jp',
         displayName: 'Admin User',
         role: 'admin',
@@ -188,7 +188,7 @@ describe('Auth Service', () => {
 
     it('should not allow employee to update system prompts', () => {
       const employeeUser: User = {
-        id: 'user-2',
+        uid: 'user-2',
         email: 'employee@trias.co.jp',
         displayName: 'Employee User',
         role: 'employee',
@@ -213,7 +213,7 @@ describe('Auth Service', () => {
 
     it('should allow admin to view any project', () => {
       const adminUser: User = {
-        id: 'admin-user',
+        uid: 'admin-user',
         email: 'admin@trias.co.jp',
         displayName: 'Admin User',
         role: 'admin',
@@ -226,7 +226,7 @@ describe('Auth Service', () => {
 
     it('should allow project member to view project', () => {
       const memberUser: User = {
-        id: 'user-1',
+        uid: 'user-1',
         email: 'member@trias.co.jp',
         displayName: 'Member User',
         role: 'employee',
@@ -239,7 +239,7 @@ describe('Auth Service', () => {
 
     it('should not allow non-member employee to view project', () => {
       const nonMemberUser: User = {
-        id: 'user-999',
+        uid: 'user-999',
         email: 'other@trias.co.jp',
         displayName: 'Other User',
         role: 'employee',
@@ -276,7 +276,7 @@ describe('Auth Service', () => {
 
     it('should allow creator to edit personal channel', () => {
       const creatorUser: User = {
-        id: 'user-1',
+        uid: 'user-1',
         email: 'creator@trias.co.jp',
         displayName: 'Creator User',
         role: 'employee',
@@ -289,7 +289,7 @@ describe('Auth Service', () => {
 
     it('should not allow non-creator to edit personal channel', () => {
       const otherUser: User = {
-        id: 'user-2',
+        uid: 'user-2',
         email: 'other@trias.co.jp',
         displayName: 'Other User',
         role: 'employee',
@@ -302,7 +302,7 @@ describe('Auth Service', () => {
 
     it('should allow creator to edit shared channel', () => {
       const creatorUser: User = {
-        id: 'user-1',
+        uid: 'user-1',
         email: 'creator@trias.co.jp',
         displayName: 'Creator User',
         role: 'employee',
@@ -315,7 +315,7 @@ describe('Auth Service', () => {
 
     it('should allow admin to edit any channel', () => {
       const adminUser: User = {
-        id: 'admin-user',
+        uid: 'admin-user',
         email: 'admin@trias.co.jp',
         displayName: 'Admin User',
         role: 'admin',
@@ -331,7 +331,7 @@ describe('Auth Service', () => {
   describe('canApproveChat', () => {
     it('should allow admin to approve chats', () => {
       const adminUser: User = {
-        id: 'admin-user',
+        uid: 'admin-user',
         email: 'admin@trias.co.jp',
         displayName: 'Admin User',
         role: 'admin',
@@ -344,7 +344,7 @@ describe('Auth Service', () => {
 
     it('should not allow employee to approve chats', () => {
       const employeeUser: User = {
-        id: 'user-1',
+        uid: 'user-1',
         email: 'employee@trias.co.jp',
         displayName: 'Employee User',
         role: 'employee',
