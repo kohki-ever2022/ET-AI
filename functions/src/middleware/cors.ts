@@ -9,7 +9,7 @@
  */
 
 import type { Request, Response } from 'express';
-import type { CallableRequest, HttpsError } from 'firebase-functions/v2/https';
+import type { CallableRequest } from 'firebase-functions/v2/https';
 
 interface CorsOptions {
   origin: string | string[] | boolean;
