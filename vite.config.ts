@@ -18,6 +18,21 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      }
+      },
+      build: {
+        target: 'esnext',
+        chunkSizeWarningLimit: 600,
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              // Vendor chunks for better caching
+              'react-vendor': ['react', 'react-dom'],
+              'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/functions'],
+              'anthropic-vendor': ['@anthropic-ai/sdk'],
+              'ui-components': ['./components/ui/Button', './components/ui/Card', './components/ui/Input'],
+            },
+          },
+        },
+      },
     };
 });
