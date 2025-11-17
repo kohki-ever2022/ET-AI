@@ -325,6 +325,12 @@ export const COLLECTIONS = {
 // ============================================================================
 
 export function isValidEmail(email: string): boolean {
+  // Basic email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return false;
+  }
+
   return email.endsWith('@trias.co.jp');
 }
 

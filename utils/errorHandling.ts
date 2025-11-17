@@ -32,7 +32,12 @@ export function classifyError(error: Error): ErrorType {
     return 'rate_limit';
   }
 
-  if (message.includes('token') && message.includes('limit')) {
+  if (
+    (message.includes('token') && message.includes('limit')) ||
+    message.includes('token limit') ||
+    message.includes('too many tokens') ||
+    message.includes('tokens')
+  ) {
     return 'token_limit';
   }
 

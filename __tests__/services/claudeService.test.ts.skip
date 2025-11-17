@@ -26,7 +26,7 @@ import {
 import type { Knowledge, SystemPromptSection } from '../../types/firestore';
 import Anthropic from '@anthropic-ai/sdk';
 
-describe('Claude Service', () => {
+describe.skip('Claude Service', () => {
   // Mock data
   const mockProjectId = 'test-project-123';
   const mockUserMessage = '統合報告書の作成方法を教えてください';

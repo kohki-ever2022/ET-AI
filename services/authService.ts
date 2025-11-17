@@ -17,7 +17,13 @@ const ALLOWED_DOMAIN = '@trias.co.jp';
  * メールドメインの検証
  */
 export function validateEmailDomain(email: string): boolean {
-  return isValidEmail(email);
+  // 基本的なメール形式チェック
+  if (!isValidEmail(email)) {
+    return false;
+  }
+
+  // ドメインチェック
+  return email.toLowerCase().endsWith(ALLOWED_DOMAIN);
 }
 
 /**
@@ -221,3 +227,47 @@ export class SessionManager {
 
 // シングルトンインスタンスをエクスポート
 export const sessionManager = SessionManager.getInstance();
+
+/**
+ * 権限チェック: プロジェクト閲覧
+ */
+export function canViewProject(
+  user: User,
+  project: { members: string[] }
+): boolean {
+  // 管理者は全てのプロジェクトを閲覧可能
+  if (user.role === 'admin') {
+    return true;
+  }
+
+  // プロジェクトメンバーは閲覧可能
+  return project.members.includes(user.id || user.uid || '');
+}
+
+/**
+ * 権限チェック: チャンネル編集
+ */
+export function canEditChannel(
+  user: User,
+  channel: {
+    createdBy?: string;
+    visibility?: {
+      type: 'shared' | 'personal';
+    };
+  }
+): boolean {
+  // 管理者は全てのチャンネルを編集可能
+  if (user.role === 'admin') {
+    return true;
+  }
+
+  // 作成者は編集可能
+  return channel.createdBy === (user.id || user.uid);
+}
+
+/**
+ * 権限チェック: チャット承認
+ */
+export function canApproveChat(user: User): boolean {
+  return user.role === 'admin';
+}
