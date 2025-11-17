@@ -8,7 +8,8 @@
  * - Environment-based configuration
  */
 
-import * as functions from 'firebase-functions';
+import type { Request, Response } from 'express';
+import type { CallableRequest, HttpsError } from 'firebase-functions/v2/https';
 
 interface CorsOptions {
   origin: string | string[] | boolean;
@@ -63,7 +64,7 @@ export function createCorsMiddleware(options?: Partial<CorsOptions>) {
 
   const corsOptions = { ...defaultOptions, ...options };
 
-  return (req: functions.https.Request, res: functions.Response, next: () => void) => {
+  return (req: Request, res: Response, next: () => void) => {
     const origin = req.headers.origin;
 
     // Check if origin is allowed
@@ -104,13 +105,14 @@ export function createCorsMiddleware(options?: Partial<CorsOptions>) {
 
 /**
  * CORS wrapper for callable functions
+ * Note: v2 callable functions handle CORS automatically, this is optional
  */
-export function withCors(
-  handler: (data: any, context: functions.https.CallableContext) => Promise<any>
+export function withCors<T = any>(
+  handler: (request: CallableRequest<T>) => Promise<any>
 ) {
-  return async (data: any, context: functions.https.CallableContext) => {
+  return async (request: CallableRequest<T>) => {
     // Verify origin for callable functions
-    const origin = context.rawRequest.headers.origin;
+    const origin = request.rawRequest.headers.origin;
     const allowedOrigins = getAllowedOrigins();
 
     if (origin && !allowedOrigins.includes(origin)) {
@@ -118,14 +120,15 @@ export function withCors(
 
       // In production, reject unauthorized origins
       if (process.env.FUNCTIONS_EMULATOR !== 'true') {
-        throw new functions.https.HttpsError(
+        const { HttpsError } = require('firebase-functions/v2/https');
+        throw new HttpsError(
           'permission-denied',
           'Request from unauthorized origin'
         );
       }
     }
 
-    return handler(data, context);
+    return handler(request);
   };
 }
 
@@ -133,11 +136,11 @@ export function withCors(
  * Apply CORS to HTTP function
  */
 export function applyCors(
-  handler: (req: functions.https.Request, res: functions.Response) => void | Promise<void>
+  handler: (req: Request, res: Response) => void | Promise<void>
 ) {
   const corsMiddleware = createCorsMiddleware();
 
-  return (req: functions.https.Request, res: functions.Response) => {
+  return (req: Request, res: Response) => {
     corsMiddleware(req, res, () => {
       handler(req, res);
     });

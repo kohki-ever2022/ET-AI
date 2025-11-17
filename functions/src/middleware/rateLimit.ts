@@ -9,14 +9,16 @@
  * - Customizable limits
  */
 
-import * as functions from 'firebase-functions';
+import type { CallableRequest } from 'firebase-functions/v2/https';
+import { HttpsError } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import * as admin from 'firebase-admin';
 import { db, serverTimestamp } from '../config/firebase';
 
 interface RateLimitConfig {
   windowMs: number; // Time window in milliseconds
   maxRequests: number; // Maximum requests in window
-  keyGenerator?: (context: functions.https.CallableContext) => string;
+  keyGenerator?: (request: CallableRequest) => string;
   message?: string;
 }
 
@@ -59,7 +61,7 @@ export const RATE_LIMITS = {
 /**
  * Generate rate limit key from user ID
  */
-function defaultKeyGenerator(context: functions.https.CallableContext): string {
+function defaultKeyGenerator(context: CallableRequest): string {
   if (context.auth?.uid) {
     return `user:${context.auth.uid}`;
   }
@@ -157,16 +159,16 @@ async function checkRateLimit(
 /**
  * Create rate limit middleware for callable functions
  */
-export function withRateLimit(
+export function withRateLimit<T = any>(
   config: RateLimitConfig,
-  handler: (data: any, context: functions.https.CallableContext) => Promise<any>
+  handler: (request: CallableRequest<T>) => Promise<any>
 ) {
   const keyGenerator = config.keyGenerator || defaultKeyGenerator;
   const message = config.message || 'Too many requests. Please try again later.';
 
-  return async (data: any, context: functions.https.CallableContext) => {
+  return async (request: CallableRequest<T>) => {
     // Generate rate limit key
-    const key = keyGenerator(context);
+    const key = keyGenerator(request);
 
     // Check rate limit
     const result = await checkRateLimit(key, config);
@@ -174,7 +176,7 @@ export function withRateLimit(
     if (!result.allowed) {
       const resetTime = result.resetAt.toISOString();
 
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'resource-exhausted',
         `${message} Try again after ${resetTime}`,
         {
@@ -188,7 +190,7 @@ export function withRateLimit(
       console.log(`Rate limit - Key: ${key}, Remaining: ${result.remaining}`);
     }
 
-    return handler(data, context);
+    return handler(request);
   };
 }
 
@@ -228,12 +230,10 @@ export async function cleanupRateLimits(): Promise<number> {
 /**
  * Scheduled function to clean up rate limits
  */
-export const rateLimitCleanup = functions.pubsub
-  .schedule('every 24 hours')
-  .onRun(async (context) => {
-    const deleted = await cleanupRateLimits();
-    console.log(`Rate limit cleanup completed: ${deleted} entries deleted`);
-  });
+export const rateLimitCleanup = onSchedule('every 24 hours', async (event) => {
+  const deleted = await cleanupRateLimits();
+  console.log(`Rate limit cleanup completed: ${deleted} entries deleted`);
+});
 
 /**
  * Get current rate limit status

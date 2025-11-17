@@ -9,7 +9,8 @@
  * 5. Stores in knowledge base with deduplication
  */
 
-import * as functions from 'firebase-functions';
+import { onObjectFinalized } from 'firebase-functions/v2/storage';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { db, storage, COLLECTIONS, logError, serverTimestamp } from './config/firebase';
 import { extractTextFromPDF } from './services/pdfExtractor';
 import { extractTextFromDOCX } from './services/docxExtractor';
@@ -67,13 +68,13 @@ async function updateDocumentStatus(
  * Main file processing function
  * Triggered when a file is uploaded to Storage
  */
-export const processFileUpload = functions
-  .runWith({
-    timeoutSeconds: 540, // 9 minutes (max for non-HTTP functions)
-    memory: '2GB',
-  })
-  .storage.object()
-  .onFinalize(async (object) => {
+export const processFileUpload = onObjectFinalized(
+  {
+    timeoutSeconds: 540, // 9 minutes
+    memory: '2GiB',
+  },
+  async (event) => {
+    const object = event.data;
     const filePath = object.name;
     const contentType = object.contentType;
 
@@ -247,21 +248,21 @@ export const processFileUpload = functions
  * HTTP endpoint for manual file processing trigger
  * Useful for reprocessing failed documents
  */
-export const reprocessDocument = functions
-  .runWith({
+export const reprocessDocument = onCall(
+  {
     timeoutSeconds: 540,
-    memory: '2GB',
-  })
-  .https.onCall(async (data, context) => {
+    memory: '2GiB',
+  },
+  async (request) => {
     // Verify authentication
-    if (!context.auth) {
-      throw new functions.https.HttpsError('unauthenticated', '認証が必要です。');
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', '認証が必要です。');
     }
 
-    const { documentId } = data;
+    const { documentId } = request.data;
 
     if (!documentId) {
-      throw new functions.https.HttpsError('invalid-argument', 'documentIdは必須です。');
+      throw new HttpsError('invalid-argument', 'documentIdは必須です。');
     }
 
     try {
@@ -269,7 +270,7 @@ export const reprocessDocument = functions
       const docSnapshot = await db.collection(COLLECTIONS.DOCUMENTS).doc(documentId).get();
 
       if (!docSnapshot.exists) {
-        throw new functions.https.HttpsError('not-found', 'ドキュメントが見つかりません。');
+        throw new HttpsError('not-found', 'ドキュメントが見つかりません。');
       }
 
       // Trigger reprocessing by updating status
@@ -285,9 +286,10 @@ export const reprocessDocument = functions
     } catch (error) {
       console.error('Reprocessing trigger failed', error);
 
-      throw new functions.https.HttpsError(
+      throw new HttpsError(
         'internal',
         error instanceof Error ? error.message : '再処理の開始に失敗しました。'
       );
     }
-  });
+  }
+);
