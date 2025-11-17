@@ -18,6 +18,8 @@ module.exports = {
     '!**/node_modules/**',
     '!**/__tests__/**',
   ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'json-summary'],
   coverageThreshold: {
     global: {
       branches: 10,
