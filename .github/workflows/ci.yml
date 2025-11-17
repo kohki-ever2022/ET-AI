@@ -1,0 +1,222 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'claude/**']
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        env:
+          CI: true
+
+      - name: Check coverage threshold
+        run: |
+          # Extract coverage percentage from coverage-summary.json
+          COVERAGE=$(node -pe "JSON.parse(require('fs').readFileSync('./coverage/coverage-summary.json', 'utf8')).total.lines.pct")
+          echo "Current coverage: ${COVERAGE}%"
+
+          # Enforce minimum coverage threshold (gradually increasing target)
+          THRESHOLD=12
+          if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+            echo "❌ Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE}% meets threshold ${THRESHOLD}%"
+            echo "📈 Target coverage: 70% (current: ${COVERAGE}%)"
+          fi
+
+      - name: Generate coverage badge
+        if: github.event_name == 'pull_request'
+        run: |
+          COVERAGE=$(node -pe "JSON.parse(require('fs').readFileSync('./coverage/coverage-summary.json', 'utf8')).total.lines.pct")
+          COLOR="red"
+          if (( $(echo "$COVERAGE >= 70" | bc -l) )); then COLOR="green"; fi
+          if (( $(echo "$COVERAGE >= 40 && $COVERAGE < 70" | bc -l) )); then COLOR="yellow"; fi
+          if (( $(echo "$COVERAGE >= 12 && $COVERAGE < 40" | bc -l) )); then COLOR="orange"; fi
+          echo "COVERAGE_PCT=${COVERAGE}" >> $GITHUB_ENV
+          echo "COVERAGE_COLOR=${COLOR}" >> $GITHUB_ENV
+
+      - name: Comment PR with coverage report
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const coverageSummary = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
+
+            const coverage = {
+              lines: coverageSummary.total.lines.pct,
+              statements: coverageSummary.total.statements.pct,
+              functions: coverageSummary.total.functions.pct,
+              branches: coverageSummary.total.branches.pct
+            };
+
+            const minThreshold = 12;  // Current minimum requirement
+            const targetThreshold = 70;  // Ultimate goal
+            const emoji = coverage.lines >= minThreshold ? '✅' : '❌';
+
+            const comment = `## ${emoji} Test Coverage Report
+
+            | Metric | Coverage | Min Required | Target | Status |
+            |--------|----------|--------------|--------|--------|
+            | Lines | ${coverage.lines.toFixed(2)}% | ${minThreshold}% | ${targetThreshold}% | ${coverage.lines >= minThreshold ? '✅' : '❌'} |
+            | Statements | ${coverage.statements.toFixed(2)}% | 11% | ${targetThreshold}% | ${coverage.statements >= 11 ? '✅' : '❌'} |
+            | Functions | ${coverage.functions.toFixed(2)}% | 8% | ${targetThreshold}% | ${coverage.functions >= 8 ? '✅' : '❌'} |
+            | Branches | ${coverage.branches.toFixed(2)}% | 10% | ${targetThreshold}% | ${coverage.branches >= 10 ? '✅' : '❌'} |
+
+            **Current Requirement:** ${minThreshold}% | **Ultimate Goal:** ${targetThreshold}%
+
+            ${coverage.lines >= minThreshold ? '✅ Coverage meets the minimum requirement!' : '❌ Coverage is below the minimum threshold.'}
+
+            ${coverage.lines < targetThreshold ? `📈 **Next Steps:** Continue adding tests to reach ${targetThreshold}% coverage.` : '🎉 Target coverage achieved!'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/coverage-final.json
+          fail_ci_if_error: false
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
+
+      - name: Notify test failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const jobUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## ❌ Tests Failed\n\nThe test suite failed. Please check the [workflow run](${jobUrl}) for details.\n\n**Branch:** \`${context.ref}\`\n**Commit:** ${context.sha.substring(0, 7)}`
+              });
+            }
+
+      - name: Send Slack notification on failure
+        if: failure() && github.ref == 'refs/heads/main'
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "❌ ET-AI Tests Failed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*❌ ET-AI Tests Failed*\n\n*Branch:* `${{ github.ref_name }}`\n*Commit:* ${{ github.sha }}\n*Author:* ${{ github.actor }}\n\n<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Workflow Run>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_ENVIRONMENT: production
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  build-functions:
+    name: Build Cloud Functions
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd functions
+          npm ci
+
+      - name: Build functions
+        run: |
+          cd functions
+          npm run build
+
+      - name: Upload functions artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: functions
+          path: functions/lib/
+          retention-days: 7
