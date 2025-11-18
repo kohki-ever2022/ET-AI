@@ -12,6 +12,7 @@
 import {
   callClaudeWithKnowledge,
   analyzeKnowledgeRelevance,
+  batchProcessWithKnowledge,
 } from '../../services/enhancedClaudeService';
 import type { SystemPromptSection, Knowledge } from '../../types/firestore';
 
@@ -269,6 +270,155 @@ describe('enhancedClaudeService', () => {
 
       expect(response.cacheHitRate).toBe(0);
       expect(response.costSavings).toBe(0);
+    });
+  });
+
+
+  describe('Knowledge Relevance Error Handling', () => {
+    it('should handle analysis errors gracefully', async () => {
+      const { httpsCallable } = require('firebase/functions');
+      const mockVectorSearch = jest.fn().mockRejectedValue(new Error('Analysis failed'));
+      httpsCallable.mockReturnValueOnce(mockVectorSearch);
+
+      const result = await analyzeKnowledgeRelevance('test-project', 'Error query');
+
+      expect(result.hasRelevantKnowledge).toBe(false);
+      expect(result.topResults).toEqual([]);
+      expect(result.avgSimilarity).toBe(0);
+      expect(result.recommendedThreshold).toBe(0.7);
+    });
+  });
+
+  describe('Learning Pattern Extraction Errors', () => {
+    const mockGetSystemPrompts = jest.fn().mockResolvedValue([
+      { id: '1', title: 'IR知識', content: 'IR content' },
+    ] as SystemPromptSection[]);
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should handle learning pattern storage errors gracefully', async () => {
+      const { addDoc } = require('firebase/firestore');
+      addDoc.mockRejectedValueOnce(new Error('Storage failed'));
+
+      // Should not throw even if storage fails
+      const response = await callClaudeWithKnowledge(
+        {
+          projectId: 'test-project',
+          userMessage: 'Test with storage error',
+        },
+        mockGetSystemPrompts
+      );
+
+      expect(response).toHaveProperty('content');
+    });
+  });
+
+  describe('batchProcessWithKnowledge', () => {
+    const mockGetSystemPrompts = jest.fn().mockResolvedValue([
+      { id: '1', title: 'IR知識', content: 'IR content' },
+    ] as SystemPromptSection[]);
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('should process multiple requests sequentially', async () => {
+      const requests = [
+        {
+          projectId: 'test-project',
+          userMessage: 'Question 1',
+          conversationHistory: [],
+        },
+        {
+          projectId: 'test-project',
+          userMessage: 'Question 2',
+          conversationHistory: [],
+        },
+      ];
+
+      const promise = batchProcessWithKnowledge(requests, mockGetSystemPrompts);
+
+      // Fast-forward through delays
+      await jest.advanceTimersByTimeAsync(2000);
+
+      const responses = await promise;
+
+      expect(responses).toHaveLength(2);
+      expect(responses[0]).toHaveProperty('content');
+      expect(responses[1]).toHaveProperty('content');
+    });
+
+    it('should handle individual request errors in batch', async () => {
+      const { callClaudeWithCaching } = require('../../services/claudeService');
+
+      // First call succeeds, second fails
+      callClaudeWithCaching
+        .mockResolvedValueOnce({
+          content: 'Success',
+          usage: { inputTokens: 100, cacheCreationInputTokens: 0, cacheReadInputTokens: 0, outputTokens: 50 },
+          cacheHitRate: 0,
+          costSavings: 0,
+        })
+        .mockRejectedValueOnce(new Error('API error'));
+
+      const requests = [
+        {
+          projectId: 'test-project',
+          userMessage: 'Success question',
+          conversationHistory: [],
+        },
+        {
+          projectId: 'test-project',
+          userMessage: 'Error question',
+          conversationHistory: [],
+        },
+      ];
+
+      const promise = batchProcessWithKnowledge(requests, mockGetSystemPrompts);
+
+      // Fast-forward through delays
+      await jest.advanceTimersByTimeAsync(2000);
+
+      const responses = await promise;
+
+      expect(responses).toHaveLength(2);
+      expect(responses[0].content).toBe('Success');
+      expect(responses[1].content).toBe(''); // Error case returns empty
+      expect(responses[1].usage.inputTokens).toBe(0);
+    });
+
+    it('should respect rate limits with delays', async () => {
+      const requests = [
+        {
+          projectId: 'test-project',
+          userMessage: 'Question 1',
+          conversationHistory: [],
+        },
+        {
+          projectId: 'test-project',
+          userMessage: 'Question 2',
+          conversationHistory: [],
+        },
+      ];
+
+      const promise = batchProcessWithKnowledge(requests, mockGetSystemPrompts);
+
+      // Advance timers to simulate delays (1000ms between each request)
+      await jest.advanceTimersByTimeAsync(2000);
+
+      const responses = await promise;
+
+      // Verify batch completed successfully with delays
+      expect(responses).toHaveLength(2);
+      expect(responses[0]).toHaveProperty('content');
+      expect(responses[1]).toHaveProperty('content');
     });
   });
 });
