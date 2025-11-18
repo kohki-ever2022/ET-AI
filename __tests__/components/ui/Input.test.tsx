@@ -7,7 +7,7 @@
 import React, { createRef } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { Input } from '../../../components/ui/Input';
+import { Input, TextArea, Checkbox, Radio } from '../../../components/ui/Input';
 
 describe('Input Component', () => {
   describe('Basic Rendering', () => {
@@ -269,6 +269,281 @@ describe('Input Component', () => {
       const input = screen.getByRole('textbox');
       expect(input).toBeRequired();
       expect(input).toHaveAttribute('type', 'email');
+    });
+  });
+});
+
+describe('TextArea Component', () => {
+  describe('Basic Rendering', () => {
+    it('should render a textarea element', () => {
+      render(<TextArea />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea.tagName).toBe('TEXTAREA');
+    });
+
+    it('should apply default rows', () => {
+      render(<TextArea />);
+      const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+      expect(textarea.rows).toBe(4);
+    });
+
+    it('should accept custom rows', () => {
+      render(<TextArea rows={10} />);
+      const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+      expect(textarea.rows).toBe(10);
+    });
+
+    it('should be resizable', () => {
+      render(<TextArea />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveClass('resize-y');
+    });
+  });
+
+  describe('Label', () => {
+    it('should render label when provided', () => {
+      render(<TextArea label="Description" />);
+      expect(screen.getByText('Description')).toBeInTheDocument();
+    });
+
+    it('should generate id when not provided', () => {
+      render(<TextArea label="Description" />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveAttribute('id');
+      expect(textarea.id).toMatch(/^textarea-/);
+    });
+
+    it('should use provided id', () => {
+      render(<TextArea label="Description" id="custom-textarea" />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveAttribute('id', 'custom-textarea');
+    });
+  });
+
+  describe('Error State', () => {
+    it('should show error class when error is provided', () => {
+      render(<TextArea error="This field is required" />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveClass('input-apple-error');
+      expect(textarea).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('should render error message', () => {
+      render(<TextArea error="Required field" />);
+      expect(screen.getByText('Required field')).toBeInTheDocument();
+    });
+
+    it('should associate error with textarea', () => {
+      render(<TextArea id="test-textarea" error="Error message" />);
+      const textarea = screen.getByRole('textbox');
+      expect(textarea).toHaveAttribute('aria-describedby', 'test-textarea-error');
+    });
+  });
+
+  describe('Helper Text', () => {
+    it('should render helper text when provided', () => {
+      render(<TextArea helperText="Maximum 500 characters" />);
+      expect(screen.getByText('Maximum 500 characters')).toBeInTheDocument();
+    });
+
+    it('should not show helper text when error is present', () => {
+      render(<TextArea error="Error" helperText="Helper" />);
+      expect(screen.getByText('Error')).toBeInTheDocument();
+      expect(screen.queryByText('Helper')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Ref Forwarding', () => {
+    it('should forward ref to textarea element', () => {
+      const ref = createRef<HTMLTextAreaElement>();
+      render(<TextArea ref={ref} />);
+
+      expect(ref.current).toBeInstanceOf(HTMLTextAreaElement);
+      expect(ref.current?.tagName).toBe('TEXTAREA');
+    });
+  });
+});
+
+describe('Checkbox Component', () => {
+  describe('Basic Rendering', () => {
+    it('should render a checkbox input', () => {
+      render(<Checkbox />);
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toBeInTheDocument();
+      expect(checkbox).toHaveAttribute('type', 'checkbox');
+    });
+
+    it('should generate id when not provided', () => {
+      render(<Checkbox label="Accept terms" />);
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toHaveAttribute('id');
+      expect(checkbox.id).toMatch(/^checkbox-/);
+    });
+
+    it('should use provided id', () => {
+      render(<Checkbox id="custom-checkbox" />);
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toHaveAttribute('id', 'custom-checkbox');
+    });
+  });
+
+  describe('Label', () => {
+    it('should render label when provided', () => {
+      render(<Checkbox label="I agree to terms" />);
+      expect(screen.getByText('I agree to terms')).toBeInTheDocument();
+    });
+
+    it('should associate label with checkbox', () => {
+      render(<Checkbox label="Accept" id="terms-checkbox" />);
+      const label = screen.getByText('Accept');
+      const checkbox = screen.getByRole('checkbox');
+      expect(label).toHaveAttribute('for', 'terms-checkbox');
+      expect(checkbox).toHaveAttribute('id', 'terms-checkbox');
+    });
+
+    it('should work without label', () => {
+      render(<Checkbox />);
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toBeInTheDocument();
+    });
+  });
+
+  describe('States', () => {
+    it('should be unchecked by default', () => {
+      render(<Checkbox />);
+      const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
+      expect(checkbox.checked).toBe(false);
+    });
+
+    it('should accept checked prop', () => {
+      render(<Checkbox checked onChange={() => {}} />);
+      const checkbox = screen.getByRole('checkbox') as HTMLInputElement;
+      expect(checkbox.checked).toBe(true);
+    });
+
+    it('should accept disabled prop', () => {
+      render(<Checkbox disabled />);
+      const checkbox = screen.getByRole('checkbox');
+      expect(checkbox).toBeDisabled();
+    });
+  });
+
+  describe('Events', () => {
+    it('should call onChange when clicked', () => {
+      const handleChange = jest.fn();
+      render(<Checkbox onChange={handleChange} />);
+      const checkbox = screen.getByRole('checkbox');
+
+      fireEvent.click(checkbox);
+      expect(handleChange).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Ref Forwarding', () => {
+    it('should forward ref to checkbox input', () => {
+      const ref = createRef<HTMLInputElement>();
+      render(<Checkbox ref={ref} />);
+
+      expect(ref.current).toBeInstanceOf(HTMLInputElement);
+      expect(ref.current?.type).toBe('checkbox');
+    });
+  });
+});
+
+describe('Radio Component', () => {
+  describe('Basic Rendering', () => {
+    it('should render a radio input', () => {
+      render(<Radio />);
+      const radio = screen.getByRole('radio');
+      expect(radio).toBeInTheDocument();
+      expect(radio).toHaveAttribute('type', 'radio');
+    });
+
+    it('should generate id when not provided', () => {
+      render(<Radio label="Option A" />);
+      const radio = screen.getByRole('radio');
+      expect(radio).toHaveAttribute('id');
+      expect(radio.id).toMatch(/^radio-/);
+    });
+
+    it('should use provided id', () => {
+      render(<Radio id="custom-radio" />);
+      const radio = screen.getByRole('radio');
+      expect(radio).toHaveAttribute('id', 'custom-radio');
+    });
+  });
+
+  describe('Label', () => {
+    it('should render label when provided', () => {
+      render(<Radio label="Option 1" />);
+      expect(screen.getByText('Option 1')).toBeInTheDocument();
+    });
+
+    it('should associate label with radio button', () => {
+      render(<Radio label="Select this" id="radio-1" />);
+      const label = screen.getByText('Select this');
+      const radio = screen.getByRole('radio');
+      expect(label).toHaveAttribute('for', 'radio-1');
+      expect(radio).toHaveAttribute('id', 'radio-1');
+    });
+
+    it('should work without label', () => {
+      render(<Radio />);
+      const radio = screen.getByRole('radio');
+      expect(radio).toBeInTheDocument();
+    });
+  });
+
+  describe('States', () => {
+    it('should be unchecked by default', () => {
+      render(<Radio />);
+      const radio = screen.getByRole('radio') as HTMLInputElement;
+      expect(radio.checked).toBe(false);
+    });
+
+    it('should accept checked prop', () => {
+      render(<Radio checked onChange={() => {}} />);
+      const radio = screen.getByRole('radio') as HTMLInputElement;
+      expect(radio.checked).toBe(true);
+    });
+
+    it('should accept disabled prop', () => {
+      render(<Radio disabled />);
+      const radio = screen.getByRole('radio');
+      expect(radio).toBeDisabled();
+    });
+
+    it('should accept name prop for grouping', () => {
+      render(
+        <div>
+          <Radio name="group1" />
+          <Radio name="group1" />
+        </div>
+      );
+      const radios = screen.getAllByRole('radio');
+      expect(radios[0]).toHaveAttribute('name', 'group1');
+      expect(radios[1]).toHaveAttribute('name', 'group1');
+    });
+  });
+
+  describe('Events', () => {
+    it('should call onChange when clicked', () => {
+      const handleChange = jest.fn();
+      render(<Radio onChange={handleChange} />);
+      const radio = screen.getByRole('radio');
+
+      fireEvent.click(radio);
+      expect(handleChange).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Ref Forwarding', () => {
+    it('should forward ref to radio input', () => {
+      const ref = createRef<HTMLInputElement>();
+      render(<Radio ref={ref} />);
+
+      expect(ref.current).toBeInstanceOf(HTMLInputElement);
+      expect(ref.current?.type).toBe('radio');
     });
   });
 });
