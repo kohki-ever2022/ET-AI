@@ -6,9 +6,43 @@ interface IconProps {
 
 export const TriasLogo: React.FC<IconProps> = ({ className = 'w-10 h-10' }) => (
     <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="50" r="48" stroke="white" strokeWidth="4"/>
-        <path d="M50 12 L85 75 H15 L50 12Z" fill="#3c5a99"/>
-        <path d="M50 90 L25 45 H75 L50 90Z" fill="white" fillOpacity="0.8"/>
+        <defs>
+            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{ stopColor: '#7DD3FC', stopOpacity: 1 }} />
+                <stop offset="50%" style={{ stopColor: '#A78BFA', stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: '#4338CA', stopOpacity: 1 }} />
+            </linearGradient>
+        </defs>
+
+        {/* 六角形の外枠 */}
+        <path
+            d="M50 5 L85 27.5 L85 72.5 L50 95 L15 72.5 L15 27.5 Z"
+            stroke="url(#logoGradient)"
+            strokeWidth="4"
+            fill="none"
+            strokeLinejoin="round"
+        />
+
+        {/* 内側の抽象的なETデザイン - E */}
+        <path
+            d="M35 35 L55 35 M35 35 L35 65 M35 50 L50 50 M35 65 L55 65"
+            stroke="url(#logoGradient)"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+
+        {/* 内側の抽象的なETデザイン - T */}
+        <path
+            d="M60 35 L80 35 M70 35 L70 65"
+            stroke="url(#logoGradient)"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+
+        {/* 中央の小さなアクセント - 透明性を象徴する目 */}
+        <circle cx="50" cy="52" r="3" fill="url(#logoGradient)" opacity="0.6" />
     </svg>
 );
 
