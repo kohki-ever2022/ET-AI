@@ -93,6 +93,16 @@ export const duplicateStats = functionsV2.https.onCall(async (request) => {
 });
 
 // ============================================================================
+// Cost Monitoring Functions
+// ============================================================================
+
+export {
+  checkBudgets,
+  generateDailyCostReport,
+  cleanupOldCostRecords,
+} from './scheduledCostMonitoring';
+
+// ============================================================================
 // Health Check
 // ============================================================================
 
@@ -112,6 +122,7 @@ export const healthCheck = functions.https.onRequest((req, res) => {
       'Voyage AI Embeddings',
       'Vector Search',
       '3-Layer Deduplication',
+      'Cost Monitoring & Alerts',
     ],
   });
 });
