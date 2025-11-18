@@ -7,7 +7,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { DarkModeToggle } from '../../../components/ui/DarkModeToggle';
+import { DarkModeToggle, DarkModeSwitch } from '../../../components/ui/DarkModeToggle';
 
 describe('DarkModeToggle Component', () => {
   let mockMatchMedia: jest.Mock;
@@ -314,6 +314,238 @@ describe('DarkModeToggle Component', () => {
       fireEvent.click(button);
 
       expect(localStorage.getItem('theme')).toBe('light');
+    });
+  });
+});
+
+describe('DarkModeSwitch Component', () => {
+  let mockMatchMedia: jest.Mock;
+
+  beforeEach(() => {
+    // Clear localStorage
+    localStorage.clear();
+
+    // Mock matchMedia
+    mockMatchMedia = jest.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+    }));
+
+    window.matchMedia = mockMatchMedia;
+
+    // Clear dark class from document
+    document.documentElement.classList.remove('dark');
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Initialization', () => {
+    it('should render switch element', () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+      expect(switchElement).toBeInTheDocument();
+    });
+
+    it('should initialize in light mode by default', () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+      expect(switchElement).toHaveAttribute('aria-checked', 'false');
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+    });
+
+    it('should initialize in dark mode when saved in localStorage', () => {
+      localStorage.setItem('theme', 'dark');
+      render(<DarkModeSwitch />);
+
+      const switchElement = screen.getByRole('switch');
+      expect(switchElement).toHaveAttribute('aria-checked', 'true');
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+    });
+
+    it('should respect system preference when no saved theme', () => {
+      mockMatchMedia.mockImplementation((query) => ({
+        matches: query === '(prefers-color-scheme: dark)',
+        media: query,
+        onchange: null,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+      }));
+
+      render(<DarkModeSwitch />);
+
+      const switchElement = screen.getByRole('switch');
+      expect(switchElement).toHaveAttribute('aria-checked', 'true');
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+    });
+  });
+
+  describe('Toggle Functionality', () => {
+    it('should toggle from light to dark mode', async () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      // Initially light mode
+      expect(switchElement).toHaveAttribute('aria-checked', 'false');
+
+      // Click to toggle
+      fireEvent.click(switchElement);
+
+      await waitFor(() => {
+        expect(switchElement).toHaveAttribute('aria-checked', 'true');
+        expect(document.documentElement.classList.contains('dark')).toBe(true);
+        expect(localStorage.getItem('theme')).toBe('dark');
+      });
+    });
+
+    it('should toggle from dark to light mode', async () => {
+      localStorage.setItem('theme', 'dark');
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      // Initially dark mode
+      await waitFor(() => {
+        expect(switchElement).toHaveAttribute('aria-checked', 'true');
+      });
+
+      // Click to toggle
+      fireEvent.click(switchElement);
+
+      await waitFor(() => {
+        expect(switchElement).toHaveAttribute('aria-checked', 'false');
+        expect(document.documentElement.classList.contains('dark')).toBe(false);
+        expect(localStorage.getItem('theme')).toBe('light');
+      });
+    });
+
+    it('should toggle multiple times', async () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      // Toggle to dark
+      fireEvent.click(switchElement);
+      await waitFor(() => {
+        expect(document.documentElement.classList.contains('dark')).toBe(true);
+      });
+
+      // Toggle to light
+      fireEvent.click(switchElement);
+      await waitFor(() => {
+        expect(document.documentElement.classList.contains('dark')).toBe(false);
+      });
+
+      // Toggle to dark again
+      fireEvent.click(switchElement);
+      await waitFor(() => {
+        expect(document.documentElement.classList.contains('dark')).toBe(true);
+      });
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('should have role switch', () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+      expect(switchElement).toBeInTheDocument();
+    });
+
+    it('should have aria-checked attribute', () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+      expect(switchElement).toHaveAttribute('aria-checked');
+    });
+
+    it('should have aria-label', () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+      expect(switchElement).toHaveAttribute('aria-label', 'ダークモード切り替え');
+    });
+
+    it('should update aria-checked when toggled', async () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      expect(switchElement).toHaveAttribute('aria-checked', 'false');
+
+      fireEvent.click(switchElement);
+
+      await waitFor(() => {
+        expect(switchElement).toHaveAttribute('aria-checked', 'true');
+      });
+    });
+
+    it('should be focusable', () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      switchElement.focus();
+      expect(switchElement).toHaveFocus();
+    });
+  });
+
+  describe('Visual Styling', () => {
+    it('should apply light mode classes when in light mode', () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      expect(switchElement).toHaveClass('bg-apple-fill-tertiary-light');
+    });
+
+    it('should apply dark mode classes when in dark mode', async () => {
+      localStorage.setItem('theme', 'dark');
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      await waitFor(() => {
+        expect(switchElement).toHaveClass('bg-apple-blue-light');
+      });
+    });
+
+    it('should have transition classes', () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      expect(switchElement).toHaveClass('transition-colors');
+      expect(switchElement).toHaveClass('duration-apple-normal');
+    });
+  });
+
+  describe('LocalStorage Persistence', () => {
+    it('should save dark theme to localStorage', async () => {
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      fireEvent.click(switchElement);
+
+      await waitFor(() => {
+        expect(localStorage.getItem('theme')).toBe('dark');
+      });
+    });
+
+    it('should save light theme to localStorage', async () => {
+      localStorage.setItem('theme', 'dark');
+      render(<DarkModeSwitch />);
+      const switchElement = screen.getByRole('switch');
+
+      await waitFor(() => {
+        expect(switchElement).toHaveAttribute('aria-checked', 'true');
+      });
+
+      fireEvent.click(switchElement);
+
+      await waitFor(() => {
+        expect(localStorage.getItem('theme')).toBe('light');
+      });
     });
   });
 });
