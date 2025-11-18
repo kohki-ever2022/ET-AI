@@ -214,7 +214,9 @@ describe('vectorSearchService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      mockFirestore.collection.mockImplementationOnce(() => ({
+      const { db } = require('../../functions/src/config/firebase');
+
+      db.collection.mockImplementationOnce(() => ({
         where: jest.fn(() => ({
           get: jest.fn().mockRejectedValue(new Error('Firestore error')),
         })),

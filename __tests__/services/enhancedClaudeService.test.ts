@@ -187,6 +187,10 @@ describe('enhancedClaudeService', () => {
   });
 
   describe('Knowledge Search Error Handling', () => {
+    const mockGetSystemPrompts = jest.fn().mockResolvedValue([
+      { id: '1', title: 'IR知識', content: 'IR content' },
+    ] as SystemPromptSection[]);
+
     beforeEach(() => {
       jest.clearAllMocks();
     });
@@ -216,6 +220,10 @@ describe('enhancedClaudeService', () => {
     // Note: extractKeywords is a private function, but we test it indirectly
     // through callClaudeWithKnowledge which stores learning patterns
 
+    const mockGetSystemPrompts = jest.fn().mockResolvedValue([
+      { id: '1', title: 'IR知識', content: 'IR content' },
+    ] as SystemPromptSection[]);
+
     it('should extract and store learning patterns', async () => {
       const { addDoc } = require('firebase/firestore');
 
@@ -234,6 +242,10 @@ describe('enhancedClaudeService', () => {
   });
 
   describe('Cost and Usage Tracking', () => {
+    const mockGetSystemPrompts = jest.fn().mockResolvedValue([
+      { id: '1', title: 'IR知識', content: 'IR content' },
+    ] as SystemPromptSection[]);
+
     beforeEach(() => {
       jest.clearAllMocks();
     });
