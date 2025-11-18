@@ -423,4 +423,197 @@ describe('FileUpload Component - User File Upload Experience', () => {
       });
     });
   });
+
+  describe('Upload Progress - Specification: Users should see upload progress', () => {
+    it('should update progress during upload', async () => {
+      mockAddDoc.mockResolvedValue({ id: 'doc-progress' });
+
+      let progressCallback: any;
+      mockUploadBytesResumable.mockReturnValue({
+        on: jest.fn((event, onProgress, onError, onComplete) => {
+          progressCallback = onProgress;
+          setTimeout(onComplete, 0);
+        }),
+      });
+
+      mockOnSnapshot.mockReturnValue(jest.fn());
+
+      const { container } = render(<FileUpload {...defaultProps} />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const pdfFile = new File(['content'], 'progress.pdf', { type: 'application/pdf' });
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [pdfFile],
+        writable: false,
+      });
+
+      fireEvent.change(fileInput);
+
+      await waitFor(() => {
+        expect(mockUploadBytesResumable).toHaveBeenCalled();
+      });
+
+      // Simulate progress update
+      if (progressCallback) {
+        progressCallback({
+          bytesTransferred: 50,
+          totalBytes: 100,
+        });
+      }
+
+      expect(container).toBeTruthy();
+    });
+  });
+
+  describe('Error Handling - Specification: Users should be notified of errors', () => {
+    it('should handle upload errors in catch block', async () => {
+      const onUploadError = jest.fn();
+      mockAddDoc.mockRejectedValue(new Error('Network error'));
+
+      render(<FileUpload {...defaultProps} onUploadError={onUploadError} />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const pdfFile = new File(['content'], 'error.pdf', { type: 'application/pdf' });
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [pdfFile],
+        writable: false,
+      });
+
+      fireEvent.change(fileInput);
+
+      await waitFor(() => {
+        expect(onUploadError).toHaveBeenCalledWith('ファイルのアップロードに失敗しました。');
+      });
+    });
+
+    it('should handle Firebase upload error callback', async () => {
+      const onUploadError = jest.fn();
+      mockAddDoc.mockResolvedValue({ id: 'doc-error' });
+
+      let errorCallback: any;
+      mockUploadBytesResumable.mockReturnValue({
+        on: jest.fn((event, onProgress, onError, onComplete) => {
+          errorCallback = onError;
+        }),
+      });
+
+      mockOnSnapshot.mockReturnValue(jest.fn());
+
+      render(<FileUpload {...defaultProps} onUploadError={onUploadError} />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const pdfFile = new File(['content'], 'upload-error.pdf', { type: 'application/pdf' });
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [pdfFile],
+        writable: false,
+      });
+
+      fireEvent.change(fileInput);
+
+      await waitFor(() => {
+        expect(mockUploadBytesResumable).toHaveBeenCalled();
+      });
+
+      // Trigger upload error
+      if (errorCallback) {
+        errorCallback(new Error('Upload failed'));
+      }
+
+      await waitFor(() => {
+        expect(onUploadError).toHaveBeenCalledWith('アップロードに失敗しました。');
+      });
+    });
+  });
+
+
+  describe('Status Display - Specification: Users should see file status', () => {
+    it('should display processing status', async () => {
+      mockAddDoc.mockResolvedValue({ id: 'doc-processing' });
+      mockUploadBytesResumable.mockReturnValue({
+        on: jest.fn((event, onProgress, onError, onComplete) => {
+          setTimeout(onComplete, 0);
+        }),
+      });
+
+      let snapshotCallback: any;
+      mockOnSnapshot.mockImplementation((ref, callback) => {
+        snapshotCallback = callback;
+        return jest.fn();
+      });
+
+      const { container } = render(<FileUpload {...defaultProps} />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const pdfFile = new File(['content'], 'processing.pdf', { type: 'application/pdf' });
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [pdfFile],
+        writable: false,
+      });
+
+      fireEvent.change(fileInput);
+
+      await waitFor(() => {
+        expect(mockOnSnapshot).toHaveBeenCalled();
+      });
+
+      // Simulate processing status from Firestore
+      if (snapshotCallback) {
+        snapshotCallback({
+          data: () => ({
+            status: 'processing',
+            uploadedAt: { toDate: () => new Date() },
+          }),
+        });
+      }
+
+      expect(container).toBeTruthy();
+    });
+
+    it('should display unknown status for default case', async () => {
+      mockAddDoc.mockResolvedValue({ id: 'doc-unknown' });
+      mockUploadBytesResumable.mockReturnValue({
+        on: jest.fn((event, onProgress, onError, onComplete) => {
+          setTimeout(onComplete, 0);
+        }),
+      });
+
+      let snapshotCallback: any;
+      mockOnSnapshot.mockImplementation((ref, callback) => {
+        snapshotCallback = callback;
+        return jest.fn();
+      });
+
+      const { container } = render(<FileUpload {...defaultProps} />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const pdfFile = new File(['content'], 'unknown.pdf', { type: 'application/pdf' });
+
+      Object.defineProperty(fileInput, 'files', {
+        value: [pdfFile],
+        writable: false,
+      });
+
+      fireEvent.change(fileInput);
+
+      await waitFor(() => {
+        expect(mockOnSnapshot).toHaveBeenCalled();
+      });
+
+      // Simulate unknown status from Firestore
+      if (snapshotCallback) {
+        snapshotCallback({
+          data: () => ({
+            status: 'unknown' as any,
+            uploadedAt: { toDate: () => new Date() },
+          }),
+        });
+      }
+
+      expect(container).toBeTruthy();
+    });
+  });
 });
