@@ -414,4 +414,34 @@ describe('VectorSearch Component', () => {
       });
     });
   });
+
+
+  describe('Search Success False', () => {
+    it('should display error message when search returns success:false', async () => {
+      const mockVectorSearch = jest.fn().mockResolvedValue({
+        data: {
+          success: false,
+          results: [],
+          count: 0,
+        },
+      });
+
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
+
+      render(<VectorSearch projectId={mockProjectId} />);
+
+      const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/検索に失敗しました/i)).toBeInTheDocument();
+      });
+    });
+  });
+
 });
+
