@@ -10,6 +10,7 @@ import * as admin from 'firebase-admin';
 import { validateInput, validateOutput } from '../security/validation';
 import { buildSystemPrompt } from '../prompts/buildPrompt';
 import { callClaudeWithCaching } from '../services/claudeService';
+import { enqueueChat, waitForQueueSlot, dequeueChat } from '../services/queueService';
 
 const db = admin.firestore();
 
@@ -33,10 +34,6 @@ interface ChatStatus {
     retryable: boolean;
   };
 }
-
-// Simple in-memory queue for rate limiting
-const processingQueue = new Set<string>();
-const MAX_CONCURRENT = 5;
 
 /**
  * Process a chat message through Claude API
@@ -79,18 +76,18 @@ export const processChat = functions.https.onCall(
         );
       }
 
-      // Step 3: Queue management
+      // Step 3: Queue management - Add to Firestore queue
+      const { position, queueId } = await enqueueChat(chatId, projectId);
+
       await updateChatStatus(chatId, {
         status: 'queued',
-        queuePosition: processingQueue.size + 1,
+        queuePosition: position,
       });
 
-      // Wait if queue is full
-      while (processingQueue.size >= MAX_CONCURRENT) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      // Wait for queue slot to become available
+      await waitForQueueSlot(queueId);
 
-      processingQueue.add(chatId);
+      let processingSuccess = false;
 
       try {
         // Step 4: Input validation (security check)
@@ -177,6 +174,8 @@ export const processChat = functions.https.onCall(
 
         console.log(`Chat processed successfully: ${chatId}`);
 
+        processingSuccess = true;
+
         return {
           success: true,
           chatId,
@@ -185,7 +184,7 @@ export const processChat = functions.https.onCall(
         };
       } finally {
         // Remove from processing queue
-        processingQueue.delete(chatId);
+        await dequeueChat(queueId, processingSuccess ? 'completed' : 'failed');
       }
     } catch (error) {
       console.error('Error processing chat:', error);

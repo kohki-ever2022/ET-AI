@@ -1,0 +1,70 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "knowledge",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "content", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "learningPatterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "patternType", "order": "ASCENDING" },
+        { "fieldPath": "patternContent", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "learningPatterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "reliability", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "budgetAlertHistory",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "budgetId", "order": "ASCENDING" },
+        { "fieldPath": "alertType", "order": "ASCENDING" },
+        { "fieldPath": "sentAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "costRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "timestamp", "order": "ASCENDING" },
+        { "fieldPath": "projectId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "costRecords",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "processingQueue",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "knowledge",
+      "fieldPath": "embedding",
+      "indexes": [],
+      "ttl": false
+    }
+  ]
+}

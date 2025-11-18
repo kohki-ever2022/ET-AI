@@ -67,18 +67,32 @@ export interface Knowledge {
   id: string;
   projectId: string;
   content: string;
-  source: 'document' | 'chat' | 'manual';
+  sourceType: 'document' | 'approved-chat' | 'manual';
   sourceId: string;
   category?: string;
   embedding?: number[];
+
+  // Reliability and usage tracking
+  reliability?: number;  // 50-100
+  usageCount?: number;
+  version?: number;
+  lastUsed?: Timestamp;
+
   metadata?: {
     documentName?: string;
     pageNumber?: number;
     chunkIndex?: number;
     extractedAt?: Timestamp;
+    // Chat-specific metadata
+    channelId?: string;
+    originalQuestion?: string;
+    approvedBy?: string;
+    approvedAt?: Timestamp;
   };
-  createdBy: string;
+
+  createdBy?: string;  // Optional for auto-generated knowledge
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
   duplicateGroupId?: string;
   isRepresentative?: boolean;
 }
@@ -179,4 +193,144 @@ export interface VectorSearchResult {
   knowledge: Knowledge;
   similarity: number;
   distance: number;
+}
+
+// ============================================================================
+// Chat Types
+// ============================================================================
+
+export type ChatStatus = 'queued' | 'processing' | 'completed' | 'error';
+
+export interface Chat {
+  id: string;
+  channelId: string;
+  projectId: string;
+  userId: string;
+  userName: string;
+  timestamp: Timestamp;
+  userMessage: string;
+  aiResponse: string;
+  characterCount: number;
+
+  // Approval
+  approved: boolean;
+  approvedBy?: string;
+  approvedAt?: Timestamp;
+
+  // Knowledge base integration
+  addedToKnowledge: boolean;
+  knowledgeId?: string;
+  knowledgeError?: string;
+  similarityScore?: number;
+
+  // Modification history
+  modifiedHistory?: ModificationRecord[];
+
+  // Metadata
+  metadata?: {
+    modelUsed: string;
+    usage: {
+      inputTokens: number;
+      cacheCreationInputTokens: number;
+      cacheReadInputTokens: number;
+      outputTokens: number;
+    };
+    cacheHitRate: number;
+    costSavings: number;
+  };
+}
+
+export interface ModificationRecord {
+  modifiedBy: string;
+  modifiedAt: Timestamp;
+  originalText: string;
+  modifiedText: string;
+  reason?: string;
+}
+
+// ============================================================================
+// Learning Pattern Types
+// ============================================================================
+
+export type PatternType = 'vocabulary' | 'structure' | 'emphasis' | 'tone';
+
+export interface LearningPattern {
+  id: string;
+  projectId: string;
+  patternType: PatternType;
+  patternContent: string;
+
+  // Examples and sources
+  examples: string[];
+  extractedFrom: string[];  // chat IDs
+
+  // Reliability metrics
+  reliability: number;      // 50-100
+  occurrenceCount: number;
+
+  // Validator info
+  validatedBy: string;
+  validatedAt: Timestamp;
+
+  // Timestamps
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ============================================================================
+// Channel Types
+// ============================================================================
+
+export interface Channel {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+
+  // Statistics
+  messageCount: number;
+  lastMessageAt?: Timestamp;
+
+  // Metadata
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+// ============================================================================
+// Project Types
+// ============================================================================
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+
+  // Members
+  members: string[];  // User IDs
+
+  // Statistics
+  approvedChatCount?: number;
+  lastPatternAnalysisCount?: number;
+  lastPatternAnalysisAt?: Timestamp;
+  lastActivity?: Timestamp;
+
+  // Metadata
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+}
+
+// ============================================================================
+// Queue Types
+// ============================================================================
+
+export interface ProcessingQueueItem {
+  id: string;
+  chatId: string;
+  projectId: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  startedAt?: Timestamp;
+  completedAt?: Timestamp;
+  createdAt: Timestamp;
 }
