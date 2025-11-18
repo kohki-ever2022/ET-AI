@@ -103,6 +103,19 @@ export {
 } from './scheduledCostMonitoring';
 
 // ============================================================================
+// Chat Processing Functions
+// ============================================================================
+
+export { processChat } from './api/processChat';
+
+// ============================================================================
+// Firestore Triggers
+// ============================================================================
+
+export { onChatApproved } from './triggers/onChatApproved';
+export { onChatModified } from './triggers/onChatModified';
+
+// ============================================================================
 // Health Check
 // ============================================================================
 
@@ -123,6 +136,9 @@ export const healthCheck = functions.https.onRequest((req, res) => {
       'Vector Search',
       '3-Layer Deduplication',
       'Cost Monitoring & Alerts',
+      'Chat Processing with RAG',
+      'Auto Knowledge Addition',
+      'Learning Pattern Extraction',
     ],
   });
 });

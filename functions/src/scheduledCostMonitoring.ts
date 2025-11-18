@@ -6,16 +6,8 @@
  */
 
 import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
 import { db, COLLECTIONS } from './config/firebase';
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  Timestamp,
-  setDoc,
-  doc,
-} from 'firebase/firestore';
 
 /**
  * Scheduled function to check budgets and send alerts
@@ -28,9 +20,10 @@ export const checkBudgets = functions.pubsub
 
     try {
       // Get all enabled budgets
-      const budgetsRef = collection(db, 'budgets');
-      const q = query(budgetsRef, where('enabled', '==', true));
-      const snapshot = await getDocs(q);
+      const snapshot = await db
+        .collection('budgets')
+        .where('enabled', '==', true)
+        .get();
 
       let alertCount = 0;
       let overBudgetCount = 0;
@@ -99,8 +92,7 @@ export const generateDailyCostReport = functions.pubsub
       today.setHours(23, 59, 59, 999);
 
       // Get all projects
-      const projectsRef = collection(db, COLLECTIONS.PROJECTS);
-      const projectsSnapshot = await getDocs(projectsRef);
+      const projectsSnapshot = await db.collection(COLLECTIONS.PROJECTS).get();
 
       const reports: any[] = [];
 
@@ -120,11 +112,10 @@ export const generateDailyCostReport = functions.pubsub
       }
 
       // Save report to Firestore
-      const reportsRef = collection(db, 'costReports');
-      await setDoc(doc(reportsRef), {
-        date: Timestamp.fromDate(yesterday),
+      await db.collection('costReports').add({
+        date: admin.firestore.Timestamp.fromDate(yesterday),
         reports,
-        generatedAt: Timestamp.now(),
+        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
       console.log(`Daily cost report generated: ${reports.length} projects`);
@@ -154,13 +145,10 @@ export const cleanupOldCostRecords = functions.pubsub
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - 90);
 
-      const costRecordsRef = collection(db, 'costRecords');
-      const q = query(
-        costRecordsRef,
-        where('timestamp', '<', Timestamp.fromDate(cutoffDate))
-      );
-
-      const snapshot = await getDocs(q);
+      const snapshot = await db
+        .collection('costRecords')
+        .where('timestamp', '<', admin.firestore.Timestamp.fromDate(cutoffDate))
+        .get();
       let deletedCount = 0;
 
       // Delete in batches
@@ -196,18 +184,16 @@ async function getUsageMetricsForBudget(
   requestCount: number;
   cacheHitRate: number;
 }> {
-  const costRecordsRef = collection(db, 'costRecords');
-  let q = query(
-    costRecordsRef,
-    where('timestamp', '>=', Timestamp.fromDate(startDate)),
-    where('timestamp', '<=', Timestamp.fromDate(endDate))
-  );
+  let queryRef = db
+    .collection('costRecords')
+    .where('timestamp', '>=', admin.firestore.Timestamp.fromDate(startDate))
+    .where('timestamp', '<=', admin.firestore.Timestamp.fromDate(endDate));
 
   if (projectId) {
-    q = query(q, where('projectId', '==', projectId));
+    queryRef = queryRef.where('projectId', '==', projectId);
   }
 
-  const snapshot = await getDocs(q);
+  const snapshot = await queryRef.get();
   const records = snapshot.docs.map((doc) => doc.data());
 
   const aggregated = records.reduce(
@@ -272,15 +258,12 @@ async function sendBudgetAlert(
   alertType: 'threshold' | 'over_budget'
 ): Promise<void> {
   // Check if we've already sent an alert recently
-  const alertsRef = collection(db, 'budgetAlertHistory');
-  const recentAlertsQuery = query(
-    alertsRef,
-    where('budgetId', '==', budgetId),
-    where('alertType', '==', alertType),
-    where('sentAt', '>', Timestamp.fromDate(new Date(Date.now() - 6 * 60 * 60 * 1000))) // Last 6 hours
-  );
-
-  const recentAlerts = await getDocs(recentAlertsQuery);
+  const recentAlerts = await db
+    .collection('budgetAlertHistory')
+    .where('budgetId', '==', budgetId)
+    .where('alertType', '==', alertType)
+    .where('sentAt', '>', admin.firestore.Timestamp.fromDate(new Date(Date.now() - 6 * 60 * 60 * 1000))) // Last 6 hours
+    .get();
 
   if (!recentAlerts.empty) {
     console.log(`Alert already sent for budget ${budgetId} in the last 6 hours`);
@@ -296,14 +279,14 @@ async function sendBudgetAlert(
   });
 
   // Record alert in history
-  await setDoc(doc(alertsRef), {
+  await db.collection('budgetAlertHistory').add({
     budgetId,
     projectId: budget.projectId,
     alertType,
     amount: budget.amount,
     currentSpend,
     percentageUsed,
-    sentAt: Timestamp.now(),
+    sentAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
   // TODO: Send email notification
