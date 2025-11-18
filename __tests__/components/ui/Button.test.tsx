@@ -7,7 +7,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { Button } from '../../../components/ui/Button';
+import { Button, ButtonGroup } from '../../../components/ui/Button';
 
 describe('Button Component', () => {
   describe('Rendering', () => {
@@ -175,6 +175,55 @@ describe('Button Component', () => {
       render(<Button aria-label="Custom Label">Button</Button>);
       const button = screen.getByLabelText('Custom Label');
       expect(button).toBeInTheDocument();
+    });
+  });
+
+  describe('ButtonGroup', () => {
+    it('should render children', () => {
+      const { container } = render(
+        <ButtonGroup>
+          <Button>Button 1</Button>
+          <Button>Button 2</Button>
+        </ButtonGroup>
+      );
+
+      expect(screen.getByText('Button 1')).toBeInTheDocument();
+      expect(screen.getByText('Button 2')).toBeInTheDocument();
+      expect(container.querySelector('[role="group"]')).toBeInTheDocument();
+    });
+
+    it('should apply default flex layout', () => {
+      const { container } = render(
+        <ButtonGroup>
+          <Button>Button 1</Button>
+          <Button>Button 2</Button>
+        </ButtonGroup>
+      );
+
+      const group = container.querySelector('[role="group"]');
+      expect(group).toHaveClass('flex', 'gap-apple-sm');
+    });
+
+    it('should accept custom className', () => {
+      const { container } = render(
+        <ButtonGroup className="custom-class">
+          <Button>Button 1</Button>
+        </ButtonGroup>
+      );
+
+      const group = container.querySelector('[role="group"]');
+      expect(group).toHaveClass('custom-class');
+    });
+
+    it('should render with default empty className when not provided', () => {
+      const { container } = render(
+        <ButtonGroup>
+          <Button>Button</Button>
+        </ButtonGroup>
+      );
+
+      const group = container.querySelector('[role="group"]');
+      expect(group).toBeInTheDocument();
     });
   });
 });

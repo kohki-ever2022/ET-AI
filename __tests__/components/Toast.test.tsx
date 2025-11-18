@@ -188,4 +188,105 @@ describe('Toast', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('Manual toast dismissal', () => {
+    it('should dismiss toast when close button is clicked', async () => {
+      const { getByText, getByLabelText } = render(
+        <ToastProvider>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      act(() => {
+        getByText('Show Success').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Success message')).toBeInTheDocument();
+      });
+
+      // Click the close button
+      const closeButton = getByLabelText('閉じる');
+      act(() => {
+        closeButton.click();
+      });
+
+      // Fast-forward the exit animation (300ms)
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Success message')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should handle close button click with exit animation', async () => {
+      const { getByText, getByLabelText } = render(
+        <ToastProvider>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      act(() => {
+        getByText('Show Error').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Error message')).toBeInTheDocument();
+      });
+
+      // Click the close button to trigger exit animation
+      const closeButton = getByLabelText('閉じる');
+      act(() => {
+        closeButton.click();
+      });
+
+      // Toast should still be visible during animation
+      expect(screen.getByText('Error message')).toBeInTheDocument();
+
+      // Fast-forward the exit animation
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Error message')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should dismiss only the clicked toast when multiple toasts are shown', async () => {
+      const { getByText, getAllByLabelText } = render(
+        <ToastProvider>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      act(() => {
+        getByText('Show Success').click();
+        getByText('Show Error').click();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Success message')).toBeInTheDocument();
+        expect(screen.getByText('Error message')).toBeInTheDocument();
+      });
+
+      // Close only the first toast
+      const closeButtons = getAllByLabelText('閉じる');
+      act(() => {
+        closeButtons[0].click();
+      });
+
+      // Fast-forward the exit animation
+      act(() => {
+        jest.advanceTimersByTime(300);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByText('Success message')).not.toBeInTheDocument();
+        expect(screen.getByText('Error message')).toBeInTheDocument();
+      });
+    });
+  });
 });
