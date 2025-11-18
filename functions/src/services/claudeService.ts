@@ -10,13 +10,25 @@ import * as admin from 'firebase-admin';
 
 const db = admin.firestore();
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: functions.config().anthropic?.api_key || process.env.ANTHROPIC_API_KEY,
-});
-
 const MODEL = 'claude-sonnet-4-20250514';
 const MAX_TOKENS = 4096;
+
+// Lazy initialization of Anthropic client
+let anthropic: Anthropic | null = null;
+
+function getAnthropicClient(): Anthropic {
+  if (!anthropic) {
+    const apiKey = process.env.ANTHROPIC_API_KEY ||
+                   (functions.config().anthropic?.api_key as string | undefined);
+
+    if (!apiKey) {
+      throw new Error('Anthropic API key is not configured');
+    }
+
+    anthropic = new Anthropic({ apiKey });
+  }
+  return anthropic;
+}
 
 export interface ClaudeRequest {
   userMessage: string;
@@ -77,7 +89,8 @@ export async function callClaudeWithCaching(
     }
 
     // Call Claude API
-    const response = await anthropic.messages.create({
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system: systemContent,

@@ -28,18 +28,17 @@ export { processFileUpload, reprocessDocument } from './fileProcessing';
 // Vector Search Functions
 // ============================================================================
 
-import * as functionsV2 from 'firebase-functions/v2';
 import { searchSimilarKnowledge } from './services/vectorSearchService';
 import { getDuplicateStats } from './services/deduplicationService';
 
 /**
  * Vector search HTTP endpoint
  */
-export const vectorSearch = functionsV2.https.onCall(async (request) => {
-  const { projectId, queryText, limit, threshold, category } = request.data;
+export const vectorSearch = functions.https.onCall(async (data, context) => {
+  const { projectId, queryText, limit, threshold, category } = data;
 
   if (!projectId || !queryText) {
-    throw new functionsV2.https.HttpsError(
+    throw new functions.https.HttpsError(
       'invalid-argument',
       'projectIdとqueryTextは必須です。'
     );
@@ -60,7 +59,7 @@ export const vectorSearch = functionsV2.https.onCall(async (request) => {
       count: results.length,
     };
   } catch (error) {
-    throw new functionsV2.https.HttpsError(
+    throw new functions.https.HttpsError(
       'internal',
       error instanceof Error ? error.message : 'ベクトル検索に失敗しました。'
     );
@@ -70,11 +69,11 @@ export const vectorSearch = functionsV2.https.onCall(async (request) => {
 /**
  * Get duplicate statistics endpoint
  */
-export const duplicateStats = functionsV2.https.onCall(async (request) => {
-  const { projectId } = request.data;
+export const duplicateStats = functions.https.onCall(async (data, context) => {
+  const { projectId } = data;
 
   if (!projectId) {
-    throw new functionsV2.https.HttpsError('invalid-argument', 'projectIdは必須です。');
+    throw new functions.https.HttpsError('invalid-argument', 'projectIdは必須です。');
   }
 
   try {
@@ -85,7 +84,7 @@ export const duplicateStats = functionsV2.https.onCall(async (request) => {
       stats,
     };
   } catch (error) {
-    throw new functionsV2.https.HttpsError(
+    throw new functions.https.HttpsError(
       'internal',
       error instanceof Error ? error.message : '統計情報の取得に失敗しました。'
     );
