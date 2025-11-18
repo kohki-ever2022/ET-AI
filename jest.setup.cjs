@@ -74,3 +74,13 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: jest.fn(),
   })),
 });
+
+// Mock performance API for Node.js test environment
+global.performance = global.performance || {};
+global.performance.now = global.performance.now || function() { return Date.now(); };
+global.performance.mark = global.performance.mark || function() {};
+global.performance.measure = global.performance.measure || function() {};
+global.performance.getEntriesByName = global.performance.getEntriesByName || function() { return []; };
+global.performance.getEntriesByType = global.performance.getEntriesByType || function() { return []; };
+global.performance.clearMarks = global.performance.clearMarks || function() {};
+global.performance.clearMeasures = global.performance.clearMeasures || function() {};

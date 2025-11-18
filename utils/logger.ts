@@ -235,10 +235,15 @@ class Logger {
    * Create a timer for performance tracking
    */
   startTimer(metricName: string): () => void {
-    const startTime = performance.now();
+    // Fallback for Node.js environment where performance.now might not be available
+    const perfNow = typeof performance !== 'undefined' && performance.now
+      ? performance.now.bind(performance)
+      : Date.now.bind(Date);
+
+    const startTime = perfNow();
 
     return (context?: LogContext) => {
-      const duration = performance.now() - startTime;
+      const duration = perfNow() - startTime;
       this.performance(metricName, duration, context);
     };
   }

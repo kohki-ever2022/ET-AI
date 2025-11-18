@@ -5,14 +5,6 @@
  * Testing philosophy: Test as specifications - what the logger should do for users
  */
 
-// Mock performance API for Node.js test environment
-Object.defineProperty(global, 'performance', {
-  writable: true,
-  value: {
-    now: jest.fn(() => Date.now()),
-  },
-});
-
 import { logger, debug, info, warn, error, setContext, clearContext, startTimer } from '../../utils/logger';
 import { LogLevel } from '../../utils/logger';
 
@@ -197,8 +189,30 @@ describe('Logger Utility', () => {
   });
 
   describe('Performance Tracking - Specification: Performance metrics should be tracked and logged', () => {
-    it.skip('should log performance metrics with duration', () => {
+    let mockPerformanceNow: jest.SpyInstance;
+    let mockDateNow: jest.SpyInstance;
+    let currentTime = 1000;
+
+    beforeEach(() => {
+      currentTime = 1000;
+      mockPerformanceNow = jest.spyOn(global.performance, 'now').mockImplementation(() => {
+        return currentTime;
+      });
+      mockDateNow = jest.spyOn(Date, 'now').mockImplementation(() => {
+        return currentTime;
+      });
+    });
+
+    afterEach(() => {
+      mockPerformanceNow.mockRestore();
+      mockDateNow.mockRestore();
+    });
+
+    it('should log performance metrics with duration', () => {
       const endTimer = startTimer('test-operation');
+
+      // Advance mock time by 250ms
+      currentTime += 250;
 
       // Simulate some work
       endTimer({ operation: 'test' });
@@ -211,8 +225,12 @@ describe('Logger Utility', () => {
       expect(logOutput).toContain('ms');
     });
 
-    it.skip('should include performance context in metrics', () => {
+    it('should include performance context in metrics', () => {
       const endTimer = startTimer('api-call');
+
+      // Advance mock time by 100ms
+      currentTime += 100;
+
       endTimer({ endpoint: '/api/users', method: 'GET' });
 
       const logOutput = consoleInfoSpy.mock.calls[0][0];
@@ -222,21 +240,18 @@ describe('Logger Utility', () => {
       expect(logOutput).toContain('GET');
     });
 
-    it.skip('should measure elapsed time accurately', () => {
-      jest.useFakeTimers();
-
+    it('should measure elapsed time accurately', () => {
       const endTimer = startTimer('timed-operation');
 
-      // Advance time by 100ms
-      jest.advanceTimersByTime(100);
+      // Advance mock time by 150ms
+      currentTime += 150;
 
       endTimer();
 
       const logOutput = consoleInfoSpy.mock.calls[0][0];
-      // The log should mention duration
+      // The log should mention duration and the time value
       expect(logOutput).toContain('completed in');
-
-      jest.useRealTimers();
+      expect(logOutput).toContain('150');
     });
   });
 

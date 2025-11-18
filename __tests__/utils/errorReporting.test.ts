@@ -11,6 +11,11 @@ import errorReporter, {
   addBreadcrumb,
   captureError,
   captureMessage,
+  trackNavigation,
+  trackAction,
+  trackApiCall,
+  wrapAsync,
+  createErrorBoundaryHandler,
 } from '../../utils/errorReporting';
 
 // Mock environment
@@ -176,6 +181,134 @@ describe('Error Reporting Service', () => {
       const error = new Error();
       captureError(error);
       expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Tracking Functions - Specification: Users should be able to track various events', () => {
+    it('should track navigation', () => {
+      expect(() => {
+        trackNavigation('/home', '/dashboard');
+      }).not.toThrow();
+    });
+
+    it('should track user action', () => {
+      expect(() => {
+        trackAction('button_click', { buttonId: 'submit-btn', page: 'form' });
+      }).not.toThrow();
+    });
+
+    it('should track user action without data', () => {
+      expect(() => {
+        trackAction('page_view');
+      }).not.toThrow();
+    });
+
+    it('should track API call with success status', () => {
+      expect(() => {
+        trackApiCall('GET', '/api/users', 200);
+      }).not.toThrow();
+    });
+
+    it('should track API call with error status', () => {
+      expect(() => {
+        trackApiCall('POST', '/api/data', 404);
+      }).not.toThrow();
+    });
+
+    it('should track API call without status code', () => {
+      expect(() => {
+        trackApiCall('GET', '/api/health');
+      }).not.toThrow();
+    });
+  });
+
+  describe('Async Function Wrapper - Specification: Async functions should be wrapped with error reporting', () => {
+    it('should wrap async function and call it successfully', async () => {
+      const asyncFn = jest.fn(async (x: number) => x * 2);
+      const wrapped = wrapAsync(asyncFn);
+
+      const result = await wrapped(5);
+
+      expect(result).toBe(10);
+      expect(asyncFn).toHaveBeenCalledWith(5);
+    });
+
+    it('should wrap async function and capture errors', async () => {
+      const error = new Error('Async error');
+      const asyncFn = jest.fn(async () => {
+        throw error;
+      });
+      const wrapped = wrapAsync(asyncFn, { componentName: 'TestComponent' });
+
+      await expect(wrapped()).rejects.toThrow('Async error');
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error reported:',
+        error,
+        { componentName: 'TestComponent' }
+      );
+    });
+
+    it('should wrap async function with multiple arguments', async () => {
+      const asyncFn = jest.fn(async (a: number, b: number, c: number) => a + b + c);
+      const wrapped = wrapAsync(asyncFn);
+
+      const result = await wrapped(1, 2, 3);
+
+      expect(result).toBe(6);
+      expect(asyncFn).toHaveBeenCalledWith(1, 2, 3);
+    });
+  });
+
+  describe('Error Boundary Handler - Specification: React error boundaries should report errors', () => {
+    it('should create error boundary handler', () => {
+      const handler = createErrorBoundaryHandler('MyComponent');
+
+      expect(handler).toBeInstanceOf(Function);
+    });
+
+    it('should handle errors in error boundary', () => {
+      const handler = createErrorBoundaryHandler('MyComponent');
+      const error = new Error('Component error');
+      const errorInfo = {
+        componentStack: 'at MyComponent\n  at App',
+      };
+
+      expect(() => {
+        handler(error, errorInfo);
+      }).not.toThrow();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error reported:',
+        error,
+        {
+          componentName: 'MyComponent',
+          componentStack: 'at MyComponent\n  at App',
+        }
+      );
+    });
+  });
+
+  describe('Breadcrumb Management - Specification: Should maintain limited breadcrumb history', () => {
+    it('should limit breadcrumbs to maximum', () => {
+      // Add 110 breadcrumbs (max is 100)
+      for (let i = 0; i < 110; i++) {
+        addBreadcrumb({
+          message: `Breadcrumb ${i}`,
+          category: 'test',
+          level: 'info',
+          timestamp: Date.now() + i,
+        });
+      }
+
+      // Should not throw and oldest should be removed
+      expect(() => {
+        addBreadcrumb({
+          message: 'Final breadcrumb',
+          category: 'test',
+          level: 'info',
+          timestamp: Date.now(),
+        });
+      }).not.toThrow();
     });
   });
 
