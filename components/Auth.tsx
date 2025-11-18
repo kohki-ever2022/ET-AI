@@ -40,7 +40,13 @@ export const Auth: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen w-screen">
+    <div
+      className="flex items-center justify-center h-screen w-screen"
+      style={{
+        background: 'linear-gradient(to right, #7DD3FC 0%, #D8BFD8 50%, #4338CA 100%)',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <div className="w-full max-w-md p-apple-xl space-y-apple-xl bg-white/60 dark:bg-black/50 backdrop-blur-lg rounded-apple-card shadow-apple-modal border border-white/20 dark:border-white/10">
         <div className="flex flex-col items-center text-center">
           <TriasLogo className="w-16 h-16" />
