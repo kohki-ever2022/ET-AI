@@ -283,5 +283,150 @@ describe('ChatInterface Component - User Chat Experience', () => {
 
       expect(screen.queryByText('コンテキスト:')).not.toBeInTheDocument();
     });
+
+    it('should display snippet context when available', () => {
+      const channelWithSnippet: Channel = {
+        ...mockChannel,
+        context: {
+          document: {
+            id: 'doc-1',
+            name: 'Test Document.pdf',
+          },
+          snippet: 'This is a snippet from the document',
+        },
+      };
+
+      render(<ChatWindow activeChat={channelWithSnippet} />);
+
+      expect(screen.getByText('コンテキスト:')).toBeInTheDocument();
+      expect(screen.getByText(/「Test Document.pdf」からの抜粋/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Error Handling - Specification: Users should see error messages when operations fail', () => {
+    it('should show unknown error message when non-Error exception is thrown', async () => {
+      mockSendMessage.mockRejectedValueOnce('String error');
+
+      render(<ChatWindow activeChat={mockChannel} />);
+
+      const input = screen.getByPlaceholderText(/ET AIに質問を入力してください/i);
+      const sendButton = screen.getByRole('button', { name: /メッセージを送信/i });
+
+      fireEvent.change(input, { target: { value: 'Test message' } });
+      fireEvent.click(sendButton);
+
+      await waitFor(() => {
+        expect(mockShowToast).toHaveBeenCalledWith(
+          'error',
+          'メッセージの送信中に不明なエラーが発生しました'
+        );
+      });
+    });
+  });
+
+  describe('Message Actions - Specification: Users can modify and delete messages', () => {
+    beforeEach(() => {
+      // Mock window.prompt
+      global.prompt = jest.fn();
+      // Mock window.confirm
+      global.confirm = jest.fn();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should not modify message when prompt is cancelled', () => {
+      (global.prompt as jest.Mock).mockReturnValue(null);
+
+      render(<ChatWindow activeChat={mockChannel} />);
+
+      const modifyButtons = screen.getAllByText('修正');
+      fireEvent.click(modifyButtons[0]);
+
+      expect(global.prompt).toHaveBeenCalledWith(
+        '修正後のテキストを入力:',
+        'Hello! How can I help you today?'
+      );
+      expect(mockDispatch).not.toHaveBeenCalled();
+    });
+
+    it('should not modify message when same text is entered', () => {
+      (global.prompt as jest.Mock).mockReturnValue('Hello! How can I help you today?');
+
+      render(<ChatWindow activeChat={mockChannel} />);
+
+      const modifyButtons = screen.getAllByText('修正');
+      fireEvent.click(modifyButtons[0]);
+
+      expect(global.prompt).toHaveBeenCalled();
+      expect(mockDispatch).not.toHaveBeenCalled();
+    });
+
+    it('should modify message when different text is entered', () => {
+      (global.prompt as jest.Mock).mockReturnValue('Modified response');
+
+      render(<ChatWindow activeChat={mockChannel} />);
+
+      const modifyButtons = screen.getAllByText('修正');
+      fireEvent.click(modifyButtons[0]);
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'MODIFY_CHAT',
+        payload: {
+          projectId: 'project-123',
+          channelId: 'channel-123',
+          chatId: 'chat-1',
+          originalText: 'Hello! How can I help you today?',
+          modifiedText: 'Modified response',
+        },
+      });
+    });
+
+    it('should not delete message when confirm is cancelled', () => {
+      (global.confirm as jest.Mock).mockReturnValue(false);
+
+      render(<ChatWindow activeChat={mockChannel} />);
+
+      const deleteButtons = screen.getAllByText('削除');
+      fireEvent.click(deleteButtons[0]);
+
+      expect(global.confirm).toHaveBeenCalledWith('このチャットを削除しますか？');
+      expect(mockDispatch).not.toHaveBeenCalled();
+    });
+
+    it('should delete message when confirm is accepted', () => {
+      (global.confirm as jest.Mock).mockReturnValue(true);
+
+      render(<ChatWindow activeChat={mockChannel} />);
+
+      const deleteButtons = screen.getAllByText('削除');
+      fireEvent.click(deleteButtons[0]);
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'DELETE_CHAT',
+        payload: {
+          projectId: 'project-123',
+          channelId: 'channel-123',
+          chatId: 'chat-1',
+        },
+      });
+    });
+
+    it('should approve message when approve button is clicked', () => {
+      render(<ChatWindow activeChat={mockChannel} />);
+
+      const approveButtons = screen.getAllByText('承認');
+      fireEvent.click(approveButtons[0]);
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: 'APPROVE_CHAT',
+        payload: {
+          projectId: 'project-123',
+          channelId: 'channel-123',
+          chatId: 'chat-1',
+        },
+      });
+    });
   });
 });
