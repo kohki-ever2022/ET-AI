@@ -55,6 +55,11 @@ jest.mock('firebase/functions', () => ({
   }),
 }));
 
+// Mock uuid
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => 'mock-uuid-' + Math.random().toString(36).substr(2, 9)),
+}));
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
