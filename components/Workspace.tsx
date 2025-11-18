@@ -224,7 +224,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ project, activ
     
     return (
         <div role="dialog" aria-modal="true" aria-labelledby="doc-manager-title" className="fixed inset-0 bg-black/30 dark:bg-apple-bg-tertiary-dark/70 backdrop-blur-md z-50 flex items-center justify-center p-apple-base">
-            <div className="bg-white/70 dark:bg-black/60 backdrop-blur-xl w-full max-w-4xl h-[90vh] rounded-apple-card border border-white/20 dark:border-white/10 flex flex-col shadow-apple-floating">
+            <div className="bg-white/92 dark:bg-black/85 backdrop-blur-2xl w-full max-w-4xl h-[90vh] rounded-apple-card border-2 border-white/30 dark:border-white/20 flex flex-col shadow-2xl">
                 <header className="flex-shrink-0 flex justify-between items-center p-apple-base border-b border-white/20 dark:border-white/10">
                     {/* FIX: Project type uses 'companyName', not 'name'. */}
                     <h2 id="doc-manager-title" className="text-apple-title-3 font-sf-bold text-apple-label-light dark:text-apple-label-dark">引用ファイル: {project.companyName}</h2>
@@ -234,10 +234,10 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ project, activ
                 </header>
                 <div className="flex-1 p-apple-lg grid grid-cols-1 md:grid-cols-2 gap-apple-lg overflow-hidden">
                     <div className="flex flex-col gap-apple-lg overflow-y-auto pr-2">
-                         <div className="p-apple-base bg-white/40 dark:bg-black/30 rounded-apple-card border border-white/20 dark:border-white/10"><h3 className="text-apple-title-3 font-sf-semibold mb-apple-base text-apple-label-light dark:text-apple-label-dark">ドキュメント管理</h3><DocumentUpload projectId={project.id} /><DocumentList projectId={project.id} documents={project.documents} onSelect={setSelectedDocument} selectedDocId={selectedDocument?.id || null} /></div>
+                         <div className="p-apple-base bg-white/70 dark:bg-black/60 backdrop-blur-md rounded-apple-card border-2 border-white/40 dark:border-white/30 shadow-md"><h3 className="text-apple-title-3 font-sf-semibold mb-apple-base text-apple-label-light dark:text-apple-label-dark">ドキュメント管理</h3><DocumentUpload projectId={project.id} /><DocumentList projectId={project.id} documents={project.documents} onSelect={setSelectedDocument} selectedDocId={selectedDocument?.id || null} /></div>
                     </div>
                     <div className="flex flex-col overflow-hidden">
-                       <div className="flex-grow p-apple-base bg-white/40 dark:bg-black/30 rounded-apple-card border border-white/20 dark:border-white/10 flex flex-col min-h-0">
+                       <div className="flex-grow p-apple-base bg-white/70 dark:bg-black/60 backdrop-blur-md rounded-apple-card border-2 border-white/40 dark:border-white/30 shadow-md flex flex-col min-h-0">
                             <div role="tablist" aria-label="ドキュメント機能" className="border-b border-apple-label-quaternary-light dark:border-apple-label-quaternary-dark mb-apple-base flex-shrink-0">
                                 <nav className="-mb-px flex space-x-apple-lg">
                                   <button role="tab" id="tab-report" aria-controls="tabpanel-report" aria-selected={activeTab === 'report'} onClick={() => setActiveTab('report')} className={`whitespace-nowrap py-apple-md px-1 border-b-2 font-sf-medium text-apple-body transition-colors motion-reduce:transition-none ${activeTab==='report' ? 'border-apple-blue-light dark:border-apple-blue-dark text-apple-blue-light dark:text-apple-blue-dark' : 'border-transparent text-apple-label-secondary-light dark:text-apple-label-secondary-dark hover:text-apple-label-light dark:hover:text-apple-label-dark hover:border-apple-label-tertiary-light dark:hover:border-apple-label-tertiary-dark'}`}>レポート生成</button>

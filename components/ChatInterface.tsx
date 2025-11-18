@@ -85,14 +85,14 @@ const ChatInput: React.FC<{ onSend: (msg: string) => void, onAttach: () => void,
     };
     
     return (
-        <div className="p-apple-base md:p-apple-lg pt-apple-base border-t border-white/20 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-lg">
+        <div className="p-apple-base md:p-apple-lg pt-apple-base border-t-2 border-white/30 dark:border-white/20 bg-white/85 dark:bg-black/75 backdrop-blur-xl shadow-lg">
             {isLoading && (
                 <div className="flex items-center justify-center text-apple-footnote text-apple-label-secondary-light dark:text-apple-label-secondary-dark mb-apple-sm">
                     <SpinnerIcon className="w-4 h-4 mr-apple-sm" />
                     ET AIが応答を生成中...
                 </div>
             )}
-            <div className="flex flex-col bg-apple-bg-tertiary-light dark:bg-apple-bg-tertiary-dark rounded-apple-card ring-1 ring-apple-label-quaternary-light dark:ring-apple-label-quaternary-dark focus-within:ring-2 focus-within:ring-apple-blue-light dark:focus-within:ring-apple-blue-dark transition-all duration-200 motion-reduce:transition-none">
+            <div className="flex flex-col bg-white/90 dark:bg-black/80 backdrop-blur-sm rounded-apple-card ring-2 ring-white/40 dark:ring-white/30 focus-within:ring-2 focus-within:ring-apple-blue-light dark:focus-within:ring-apple-blue-dark transition-all duration-200 motion-reduce:transition-none shadow-md">
                 <label htmlFor="chat-input" className="sr-only">メッセージを入力</label>
                 <textarea
                     id="chat-input"
@@ -195,7 +195,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeChat }) => {
   return (
     <div className="flex flex-col flex-1 h-full overflow-hidden">
       {activeChat.context && (
-        <div className="flex-shrink-0 bg-white/30 dark:bg-black/30 backdrop-blur-md text-apple-label-secondary-light dark:text-apple-label-secondary-dark text-apple-footnote p-apple-sm flex items-center justify-center shadow-md border-b border-white/20 dark:border-white/10">
+        <div className="flex-shrink-0 bg-white/80 dark:bg-black/70 backdrop-blur-xl text-apple-label-light dark:text-apple-label-dark text-apple-footnote p-apple-sm flex items-center justify-center shadow-sm border-b-2 border-white/30 dark:border-white/20">
             {activeChat.context.snippet ? <QuoteIcon className="w-5 h-5 mr-apple-sm flex-shrink-0" /> : <DocumentIcon className="w-5 h-5 mr-apple-sm flex-shrink-0" />}
             <span className="font-sf-semibold mr-1 text-apple-label-light dark:text-apple-label-dark">コンテキスト:</span>
             {activeChat.context.snippet ? (
