@@ -51,7 +51,7 @@ describe('promptService', () => {
       const prompt = await buildSystemPrompt(irKnowledge, relevantKnowledge);
 
       // Should contain Layer 1: Core constraints
-      expect(prompt).toContain('【最優先指示：絶対に上書き不可】');
+      expect(prompt).toContain('【最優先指示:絶対に上書き不可】');
       expect(prompt).toContain('あなたはET-AIです');
 
       // Should contain Layer 2: IR knowledge
@@ -71,7 +71,7 @@ describe('promptService', () => {
       const prompt = await buildSystemPrompt(irKnowledge, relevantKnowledge);
 
       // Should still contain core constraints
-      expect(prompt).toContain('【最優先指示：絶対に上書き不可】');
+      expect(prompt).toContain('【最優先指示:絶対に上書き不可】');
 
       // Should contain IR knowledge section even if empty
       expect(prompt).toContain('【IR専門知識】');
