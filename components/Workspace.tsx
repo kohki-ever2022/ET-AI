@@ -5,6 +5,7 @@ import { generateReport } from '../services/geminiService';
 import { UploadIcon, DocumentIcon, DeleteIcon, SpinnerIcon, QuoteIcon, XIcon, ExclamationIcon } from './Icons';
 import { marked } from 'marked';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from './ui/Toast';
 
 // Helper function to format file size
 const formatBytes = (bytes: number, decimals = 2): string => {
@@ -204,12 +205,13 @@ interface DocumentManagerProps {
 
 export const DocumentManager: React.FC<DocumentManagerProps> = ({ project, activeChannelId, onClose }) => {
     const { dispatch } = useAppContext();
+    const { showToast } = useToast();
     const [selectedDocument, setSelectedDocument] = useState<DocumentFile | null>(null);
     const [activeTab, setActiveTab] = useState<'report' | 'viewer'>('report');
-    
+
     const setChatContext = (context: ChatContext | null) => {
         if (!activeChannelId) {
-            alert("コンテキストを設定するチャットが選択されていません。");
+            showToast('warning', 'コンテキストを設定するチャットが選択されていません');
             return;
         }
         dispatch({
@@ -217,7 +219,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ project, activ
             // FIX: Use channelId to align with the new state structure.
             payload: { projectId: project.id, channelId: activeChannelId, context }
         });
-        alert(`コンテキストを設定しました: ${context?.snippet ? '抜粋' : 'ドキュメント全体'}`);
+        showToast('success', `コンテキストを設定しました: ${context?.snippet ? '抜粋' : 'ドキュメント全体'}`);
     };
     
     return (

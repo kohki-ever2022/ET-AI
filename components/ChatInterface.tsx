@@ -4,6 +4,7 @@ import { Chat, Channel } from '../types';
 import { SendIcon, BotIcon, UserIcon, DocumentIcon, QuoteIcon, PaperclipIcon, SpinnerIcon } from './Icons';
 import { marked } from 'marked';
 import { useAppContext } from '../context/AppContext';
+import { useToast } from './ui/Toast';
 
 // As per spec (Week 6, ChatMessage.tsx)
 const ChatMessageItem: React.FC<{ chatMessage: {role: 'user' | 'model', content: string}, onApprove: () => void, onModify: () => void, onDelete: () => void, isApproved: boolean, isAiMessage: boolean }> = 
@@ -18,7 +19,7 @@ const ChatMessageItem: React.FC<{ chatMessage: {role: 'user' | 'model', content:
             {isAiMessage && <BotIcon className="w-8 h-8 text-apple-blue-light dark:text-apple-blue-dark flex-shrink-0" />}
             
             <div className="flex flex-col items-start w-full max-w-2xl">
-                <div className={`w-fit max-w-full p-apple-base rounded-apple-card ${!isAiMessage ? 'bg-apple-blue-light dark:bg-apple-blue-dark text-white self-end' : 'bg-white/80 dark:bg-apple-bg-secondary-dark/90 backdrop-blur-sm text-apple-label-light dark:text-apple-label-dark'}`}>
+                <div className={`w-fit max-w-full p-apple-base rounded-apple-card ${!isAiMessage ? 'bg-apple-blue-light dark:bg-apple-blue-dark text-white self-end' : isApproved ? 'bg-apple-green-light/10 dark:bg-apple-green-dark/10 backdrop-blur-sm text-apple-label-light dark:text-apple-label-dark border-2 border-apple-green-light/30 dark:border-apple-green-dark/30' : 'bg-white/80 dark:bg-apple-bg-secondary-dark/90 backdrop-blur-sm text-apple-label-light dark:text-apple-label-dark'}`}>
                 {chatMessage.content ? (
                     isAiMessage ? (
                         <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: marked(chatMessage.content) }} />
@@ -34,18 +35,21 @@ const ChatMessageItem: React.FC<{ chatMessage: {role: 'user' | 'model', content:
                 )}
                 </div>
                 {isAiMessage && (
-                    <div className="mt-2 flex gap-2 items-center">
+                    <div className="mt-2 flex gap-2 items-center flex-wrap">
                         {isApproved && (
-                             <span className="ml-2 text-xs text-apple-green-light dark:text-apple-green-dark font-semibold">✓ 承認済み</span>
+                             <div className="flex items-center gap-1 px-apple-sm py-1 bg-apple-green-light/20 dark:bg-apple-green-dark/20 rounded-apple-capsule border border-apple-green-light dark:border-apple-green-dark">
+                                <span className="text-apple-body text-apple-green-light dark:text-apple-green-dark font-sf-semibold">✓</span>
+                                <span className="text-apple-footnote text-apple-green-light dark:text-apple-green-dark font-sf-semibold">承認済み</span>
+                             </div>
                         )}
                         {!isApproved && isAdmin && (
-                             <button onClick={onApprove} className="px-3 py-1 bg-apple-green-light/80 text-white rounded text-sm hover:bg-apple-green-light">承認</button>
+                             <button onClick={onApprove} className="px-apple-md py-apple-sm min-h-[44px] bg-apple-green-light dark:bg-apple-green-dark text-white rounded-apple-button text-apple-body font-sf-semibold hover:brightness-110 transition-all active:scale-95 motion-reduce:transform-none motion-reduce:transition-none">承認</button>
                         )}
                         {isAdmin && (
-                            <button onClick={onModify} className="px-3 py-1 bg-apple-yellow-light/80 text-white rounded text-sm hover:bg-apple-yellow-light">修正</button>
+                            <button onClick={onModify} className="px-apple-md py-apple-sm min-h-[44px] bg-apple-orange-light dark:bg-apple-orange-dark text-white rounded-apple-button text-apple-body font-sf-semibold hover:brightness-110 transition-all active:scale-95 motion-reduce:transform-none motion-reduce:transition-none">修正</button>
                         )}
                         {!isApproved && isAdmin && (
-                            <button onClick={onDelete} className="px-3 py-1 bg-apple-red-light/80 text-white rounded text-sm hover:bg-apple-red-light">削除</button>
+                            <button onClick={onDelete} className="px-apple-md py-apple-sm min-h-[44px] bg-apple-red-light dark:bg-apple-red-dark text-white rounded-apple-button text-apple-body font-sf-semibold hover:brightness-110 transition-all active:scale-95 motion-reduce:transform-none motion-reduce:transition-none">削除</button>
                         )}
                     </div>
                 )}
@@ -96,7 +100,7 @@ const ChatInput: React.FC<{ onSend: (msg: string) => void, onAttach: () => void,
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="メッセージを入力..."
+                    placeholder="ET AIに質問を入力してください（Enter で送信、Shift + Enter で改行）..."
                     className="w-full bg-transparent text-apple-label-light dark:text-apple-label-dark placeholder:text-apple-label-tertiary-light dark:placeholder:text-apple-label-tertiary-dark focus:outline-none p-apple-base resize-none"
                     disabled={isLoading}
                 />
@@ -129,6 +133,7 @@ interface ChatWindowProps {
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ activeChat }) => {
   const { sendMessage, dispatch } = useAppContext();
+  const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -142,26 +147,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeChat }) => {
   
   const handleSend = async (message: string) => {
     if (isLoading) return;
-    
+
     setIsLoading(true);
     try {
         // FIX: sendMessage expects (channelId, projectId, message). activeChat is a Channel, so its id is the channelId.
         await sendMessage(activeChat.id, activeChat.projectId, message);
+        showToast('success', 'メッセージを送信しました');
     } catch (error) {
         if (error instanceof Error) {
-            alert(error.message);
+            showToast('error', `エラー: ${error.message}`);
         } else {
-            alert("メッセージの送信中に不明なエラーが発生しました。");
+            showToast('error', 'メッセージの送信中に不明なエラーが発生しました');
         }
     } finally {
         setIsLoading(false);
     }
   };
-  
+
   const handleAttachment = () => {
     // This would likely trigger the DocumentManager modal in the new design
     // For now, it's a placeholder.
-    alert("ドキュメント管理パネルを開いてファイルをアップロード・引用してください。");
+    showToast('info', 'ヘッダーの「引用ファイル」ボタンからドキュメントを管理できます', 4000);
   };
 
   // FIX: Dispatch actions with correct types and payloads as defined in the updated AppContext.
