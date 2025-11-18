@@ -53,12 +53,17 @@ import {
   trackDocumentProcessing,
   trackAuthentication,
   trackFirestoreOperation,
+  trackPageLoad,
   startTrace,
   measureSync,
   measureAsync,
 } from '../../services/performanceMonitoring';
 
 describe('PerformanceTrace', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should create a trace', () => {
     const trace = new PerformanceTrace('test_trace');
     expect(trace).toBeDefined();
@@ -87,6 +92,85 @@ describe('PerformanceTrace', () => {
     const trace = new PerformanceTrace('test_trace');
     trace.stop();
     // No error should be thrown
+  });
+
+  it('should handle error when starting trace', () => {
+    const { trace: mockTrace } = require('firebase/performance');
+    mockTrace.mockImplementationOnce(() => {
+      throw new Error('Failed to create trace');
+    });
+
+    const trace = new PerformanceTrace('error_trace');
+    expect(trace).toBeDefined();
+    // Should not throw, error is caught
+  });
+
+  it('should handle error when putting metric', () => {
+    const { trace: mockTrace } = require('firebase/performance');
+    mockTrace.mockReturnValueOnce({
+      start: jest.fn(),
+      stop: jest.fn(),
+      putMetric: jest.fn(() => {
+        throw new Error('Failed to put metric');
+      }),
+      incrementMetric: jest.fn(),
+      putAttribute: jest.fn(),
+    });
+
+    const trace = new PerformanceTrace('test_trace');
+    trace.putMetric('test_metric', 100);
+    // Should not throw, error is caught
+  });
+
+  it('should handle error when incrementing metric', () => {
+    const { trace: mockTrace } = require('firebase/performance');
+    mockTrace.mockReturnValueOnce({
+      start: jest.fn(),
+      stop: jest.fn(),
+      putMetric: jest.fn(),
+      incrementMetric: jest.fn(() => {
+        throw new Error('Failed to increment metric');
+      }),
+      putAttribute: jest.fn(),
+    });
+
+    const trace = new PerformanceTrace('test_trace');
+    trace.incrementMetric('test_metric', 5);
+    // Should not throw, error is caught
+  });
+
+  it('should handle error when putting attribute', () => {
+    const { trace: mockTrace } = require('firebase/performance');
+    mockTrace.mockReturnValueOnce({
+      start: jest.fn(),
+      stop: jest.fn(),
+      putMetric: jest.fn(),
+      incrementMetric: jest.fn(),
+      putAttribute: jest.fn(() => {
+        throw new Error('Failed to put attribute');
+      }),
+    });
+
+    const trace = new PerformanceTrace('test_trace');
+    trace.putAttribute('test_attr', 'value');
+    // Should not throw, error is caught
+  });
+
+  it('should handle error when stopping trace', () => {
+    const { trace: mockTrace } = require('firebase/performance');
+    mockTrace.mockReturnValueOnce({
+      start: jest.fn(),
+      stop: jest.fn(() => {
+        throw new Error('Failed to stop trace');
+      }),
+      putMetric: jest.fn(),
+      incrementMetric: jest.fn(),
+      putAttribute: jest.fn(),
+    });
+
+    const trace = new PerformanceTrace('test_trace');
+    trace.stop();
+    // Should not throw, error is caught
   });
 });
 
@@ -177,6 +261,18 @@ describe('trackDocumentProcessing', () => {
     expect(mockOperation).toHaveBeenCalled();
     expect(result).toEqual({ success: true });
   });
+
+  it('should track failed document processing', async () => {
+    const mockOperation = jest.fn().mockRejectedValue(new Error('Processing Error'));
+
+    await expect(
+      trackDocumentProcessing(mockOperation, {
+        documentId: 'doc-123',
+      })
+    ).rejects.toThrow('Processing Error');
+
+    expect(mockOperation).toHaveBeenCalled();
+  });
 });
 
 describe('trackAuthentication', () => {
@@ -189,6 +285,18 @@ describe('trackAuthentication', () => {
 
     expect(mockOperation).toHaveBeenCalled();
     expect(result).toEqual({ user: { uid: 'test-123' } });
+  });
+
+  it('should track failed authentication', async () => {
+    const mockOperation = jest.fn().mockRejectedValue(new Error('Auth Error'));
+
+    await expect(
+      trackAuthentication(mockOperation, {
+        authType: 'login',
+      })
+    ).rejects.toThrow('Auth Error');
+
+    expect(mockOperation).toHaveBeenCalled();
   });
 });
 
@@ -203,6 +311,18 @@ describe('trackFirestoreOperation', () => {
 
     expect(mockOperation).toHaveBeenCalled();
     expect(result).toEqual({ docs: [] });
+  });
+
+  it('should track failed Firestore operation', async () => {
+    const mockOperation = jest.fn().mockRejectedValue(new Error('Firestore Error'));
+
+    await expect(
+      trackFirestoreOperation(mockOperation, {
+        operationType: 'write',
+      })
+    ).rejects.toThrow('Firestore Error');
+
+    expect(mockOperation).toHaveBeenCalled();
   });
 });
 
@@ -249,5 +369,40 @@ describe('measureAsync', () => {
     const mockFn = jest.fn().mockRejectedValue(new Error('Async Error'));
 
     await expect(measureAsync(mockFn, 'test_async')).rejects.toThrow('Async Error');
+  });
+});
+
+describe('trackPageLoad', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('should track page load without metadata', () => {
+    trackPageLoad('home_page');
+    // Should complete without errors
+    jest.advanceTimersByTime(100);
+  });
+
+  it('should track page load with metadata', () => {
+    trackPageLoad('dashboard_page', {
+      userRole: 'admin',
+      projectCount: '5',
+    });
+    // Should complete without errors
+    jest.advanceTimersByTime(100);
+  });
+
+  it('should automatically stop trace after delay', () => {
+    trackPageLoad('test_page');
+
+    // Verify timer was set
+    expect(jest.getTimerCount()).toBeGreaterThan(0);
+
+    // Fast-forward time to trigger stop
+    jest.advanceTimersByTime(100);
   });
 });
