@@ -48,7 +48,7 @@ const ChannelList: React.FC<{ channels: Channel[], activeChannelId: string | nul
     };
     
     return (
-        <div className="flex flex-col flex-grow bg-apple-bg-secondary-light/50 dark:bg-apple-bg-secondary-dark/50 p-apple-md border-r border-white/20 dark:border-white/10 min-w-[280px]">
+        <div className="flex flex-col flex-grow bg-apple-bg-secondary-light/70 dark:bg-apple-bg-secondary-dark/70 p-apple-md border-r border-white/20 dark:border-white/10 min-w-[280px]">
              <div className="flex justify-between items-center mb-apple-base">
                 <h2 className="text-apple-headline font-sf-semibold text-apple-label-light dark:text-apple-label-dark">チャンネル</h2>
                 <button onClick={handleCreateChannel} className="p-1 text-apple-blue-light dark:text-apple-blue-dark hover:bg-apple-blue-light/10 dark:hover:bg-apple-blue-dark/10 rounded-full">
@@ -97,7 +97,7 @@ export const Sidebar: React.FC = () => {
 
     return (
         <div className="flex h-full">
-            <aside className="flex flex-col h-full w-72 bg-white/70 dark:bg-black/60 backdrop-blur-xl p-apple-md border-r border-white/20 dark:border-white/10">
+            <aside className="flex flex-col h-full w-72 bg-white/85 dark:bg-black/75 backdrop-blur-xl p-apple-md border-r border-white/20 dark:border-white/10">
                 <div className="flex-shrink-0 flex flex-col items-start pb-apple-md">
                     <div className="flex items-center">
                         <TriasLogo className="w-8 h-8" />
