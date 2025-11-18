@@ -8,10 +8,13 @@
  * - UI rendering performance
  */
 
-import { getPerformance, trace as createTrace, type Trace } from 'firebase/performance';
+import { getPerformance, trace as createTrace } from 'firebase/performance';
 import { app } from '../config/firebase';
 import { logger, warn } from '../utils/logger';
 import { env } from '../config/environment';
+
+// Type for Firebase Performance Trace
+type FirebaseTrace = ReturnType<typeof createTrace>;
 
 // Initialize Firebase Performance
 let performance: ReturnType<typeof getPerformance> | null = null;
@@ -42,7 +45,7 @@ export interface PerformanceAttributes {
  * Performance trace wrapper with automatic error handling
  */
 export class PerformanceTrace {
-  private trace: Trace | null = null;
+  private trace: FirebaseTrace | null = null;
   private startTime: number;
   private name: string;
   private metrics: PerformanceMetrics = {};

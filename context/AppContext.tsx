@@ -346,3 +346,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 };
 
 export const useAppContext = () => useContext(AppContext);
+
+// Alias for backward compatibility and shorter name
+export const useApp = useAppContext;

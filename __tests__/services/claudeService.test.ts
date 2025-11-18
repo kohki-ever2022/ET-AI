@@ -251,7 +251,7 @@ describe.skip('claudeService', () => {
   });
 
   describe('SmartCacheWarmer', () => {
-    let warmer: SmartCacheWarmer;
+    let warmer: InstanceType<typeof SmartCacheWarmer>;
 
     beforeEach(() => {
       warmer = new SmartCacheWarmer();
