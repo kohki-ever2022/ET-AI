@@ -443,5 +443,126 @@ describe('VectorSearch Component', () => {
     });
   });
 
+  describe('Additional Coverage - Empty Query and Whitespace', () => {
+    it('should clear results when search query becomes empty after having results', async () => {
+      const mockVectorSearch = jest.fn().mockResolvedValue({
+        data: {
+          success: true,
+          results: [
+            {
+              knowledge: {
+                id: 'knowledge-1',
+                content: 'Test content',
+                category: 'company-info',
+              },
+              similarity: 0.95,
+              distance: 0.05,
+            },
+          ],
+          count: 1,
+        },
+      });
+
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
+
+      render(<VectorSearch projectId={mockProjectId} />);
+
+      const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
+
+      // First, perform a search with valid query
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(mockVectorSearch).toHaveBeenCalled();
+      });
+
+      // Clear the query
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: '   ' } });
+        jest.advanceTimersByTime(500);
+      });
+
+      // Should show empty state
+      await waitFor(() => {
+        expect(screen.getByText(/検索キーワードを入力してください/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Similarity Color Coding', () => {
+    it('should render results with different similarity colors', async () => {
+      const mockVectorSearch = jest.fn().mockResolvedValue({
+        data: {
+          success: true,
+          results: [
+            {
+              knowledge: {
+                id: 'knowledge-1',
+                content: 'Very high similarity',
+                category: 'company-info',
+              },
+              similarity: 0.95,
+              distance: 0.05,
+            },
+            {
+              knowledge: {
+                id: 'knowledge-2',
+                content: 'High similarity',
+                category: 'company-info',
+              },
+              similarity: 0.85,
+              distance: 0.15,
+            },
+            {
+              knowledge: {
+                id: 'knowledge-3',
+                content: 'Medium similarity',
+                category: 'company-info',
+              },
+              similarity: 0.75,
+              distance: 0.25,
+            },
+            {
+              knowledge: {
+                id: 'knowledge-4',
+                content: 'Low similarity',
+                category: 'company-info',
+              },
+              similarity: 0.65,
+              distance: 0.35,
+            },
+          ],
+          count: 4,
+        },
+      });
+
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
+
+      render(<VectorSearch projectId={mockProjectId} />);
+
+      const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(mockVectorSearch).toHaveBeenCalled();
+      });
+
+      // Results should be rendered with different similarities
+      await waitFor(() => {
+        expect(screen.getByText(/Very high similarity/i)).toBeInTheDocument();
+        expect(screen.getByText(/High similarity/i)).toBeInTheDocument();
+        expect(screen.getByText(/Medium similarity/i)).toBeInTheDocument();
+        expect(screen.getByText(/Low similarity/i)).toBeInTheDocument();
+      });
+    });
+  });
+
 });
 

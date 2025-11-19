@@ -62,6 +62,33 @@ describe('firebaseService', () => {
       expect(typeof unsubscribe).toBe('function');
     });
 
+    it('should unsubscribe and stop receiving updates', async () => {
+      const callback = jest.fn();
+      const unsubscribe = onSnapshot('projects', callback);
+
+      // Clear initial call
+      callback.mockClear();
+
+      // Unsubscribe
+      unsubscribe();
+
+      // Add a document - callback should not be called
+      await addDoc('projects', {
+        companyName: 'Test',
+        industry: 'Tech',
+        fiscalYearEnd: '12月',
+        members: [],
+        knowledgeVersion: 1,
+        createdBy: 'user',
+        lastActivity: new Date(),
+        documents: [],
+        channels: [],
+      });
+
+      // Callback should not have been called after unsubscribe
+      expect(callback).not.toHaveBeenCalled();
+    });
+
     it('should allow multiple listeners on same collection', () => {
       const callback1 = jest.fn();
       const callback2 = jest.fn();
@@ -114,6 +141,32 @@ describe('firebaseService', () => {
       callback.mockClear();
       await updateDoc('projects', 'proj-1', { companyName: 'Updated' });
       expect(callback).toHaveBeenCalled();
+    });
+
+    it('should update a chat in nested path (projects/channels/chats)', async () => {
+      // Update a chat using the nested path format
+      await updateDoc('projects/channels/proj-1/chats', 'chan-1-1', {
+        id: 'chat-1-1-1',
+        approved: true,
+      });
+
+      // Verify the chat was updated
+      const messages = await getChannelMessages('proj-1', 'chan-1-1');
+      const updatedChat = messages.find(m => m.id === 'chat-1-1-1');
+      expect(updatedChat?.approved).toBe(true);
+    });
+
+    it('should add a new chat when it does not exist in nested path', async () => {
+      // Try to update a non-existent chat - should add it
+      await updateDoc('projects/channels/proj-1/chats', 'chan-1-1', {
+        id: 'new-chat-id',
+        userMessage: 'New message',
+        aiResponse: 'New response',
+      });
+
+      // Verify the chat was added
+      const messages = await getChannelMessages('proj-1', 'chan-1-1');
+      expect(messages.some(m => m.userMessage === 'New message')).toBe(true);
     });
   });
 

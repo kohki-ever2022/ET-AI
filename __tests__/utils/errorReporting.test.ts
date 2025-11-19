@@ -55,6 +55,54 @@ describe('Error Reporting Service', () => {
     it('should initialize without errors', () => {
       expect(() => errorReporter.initialize()).not.toThrow();
     });
+
+    it('should handle initialization when error reporting is disabled', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: false,
+          },
+          monitoring: {
+            sentryDsn: 'https://test@sentry.io/123',
+          },
+          environment: 'test',
+          isProduction: false,
+          isDevelopment: true,
+        },
+      }));
+
+      const { default: reporter } = require('../../utils/errorReporting');
+
+      consoleLogSpy.mockClear();
+      expect(() => reporter.initialize()).not.toThrow();
+      expect(consoleLogSpy).toHaveBeenCalledWith('Error reporting disabled');
+    });
+
+    it('should handle initialization when Sentry DSN is not configured', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: true,
+          },
+          monitoring: {
+            sentryDsn: null,
+          },
+          environment: 'test',
+          isProduction: false,
+          isDevelopment: true,
+        },
+      }));
+
+      const { default: reporter } = require('../../utils/errorReporting');
+
+      consoleWarnSpy.mockClear();
+      expect(() => reporter.initialize()).not.toThrow();
+      expect(consoleWarnSpy).toHaveBeenCalledWith('Sentry DSN not configured');
+    });
   });
 
   describe('User Context', () => {
@@ -181,6 +229,65 @@ describe('Error Reporting Service', () => {
       const error = new Error();
       captureError(error);
       expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    it('should handle captureError when error reporting is disabled', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: false,
+          },
+          monitoring: {
+            sentryDsn: null,
+          },
+          environment: 'test',
+          isProduction: false,
+          isDevelopment: true,
+        },
+      }));
+
+      const { captureError: captureErrorFn } = require('../../utils/errorReporting');
+
+      consoleErrorSpy.mockClear();
+      const error = new Error('Test error');
+      captureErrorFn(error, { test: 'context' });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error (reporting disabled):',
+        error,
+        { test: 'context' }
+      );
+    });
+
+    it('should handle captureMessage when error reporting is disabled', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: false,
+          },
+          monitoring: {
+            sentryDsn: null,
+          },
+          environment: 'test',
+          isProduction: false,
+          isDevelopment: true,
+        },
+      }));
+
+      const { captureMessage: captureMessageFn } = require('../../utils/errorReporting');
+
+      consoleLogSpy.mockClear();
+      captureMessageFn('Test message', 'error', { test: 'context' });
+
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        'Message (error):',
+        'Test message',
+        { test: 'context' }
+      );
     });
   });
 

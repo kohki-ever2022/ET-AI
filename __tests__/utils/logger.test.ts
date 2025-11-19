@@ -322,4 +322,214 @@ describe('Logger Utility', () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
   });
+
+  describe('Log Level Filtering - Specification: Logger should filter logs based on configured level', () => {
+    it('should filter debug logs when level is info', () => {
+      // Create a new logger with INFO level
+      const { Logger: LoggerClass } = require('../../utils/logger');
+
+      // Mock environment with INFO level
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: false,
+          },
+          monitoring: {
+            logLevel: 'info',
+            sentryDsn: null,
+          },
+          isProduction: false,
+          isDevelopment: true,
+        },
+      }));
+
+      const { debug: debugFn, info: infoFn } = require('../../utils/logger');
+
+      // Clear previous calls
+      consoleDebugSpy.mockClear();
+      consoleInfoSpy.mockClear();
+
+      debugFn('Debug message');
+      infoFn('Info message');
+
+      // Debug should be filtered out
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
+      // Info should be logged
+      expect(consoleInfoSpy).toHaveBeenCalled();
+    });
+
+    it('should filter info and debug logs when level is warn', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: false,
+          },
+          monitoring: {
+            logLevel: 'warn',
+            sentryDsn: null,
+          },
+          isProduction: false,
+          isDevelopment: true,
+        },
+      }));
+
+      const { debug: debugFn, info: infoFn, warn: warnFn } = require('../../utils/logger');
+
+      consoleDebugSpy.mockClear();
+      consoleInfoSpy.mockClear();
+      consoleWarnSpy.mockClear();
+
+      debugFn('Debug message');
+      infoFn('Info message');
+      warnFn('Warn message');
+
+      // Debug and info should be filtered out
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
+      expect(consoleInfoSpy).not.toHaveBeenCalled();
+      // Warn should be logged
+      expect(consoleWarnSpy).toHaveBeenCalled();
+    });
+
+    it('should only log errors when level is error', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: false,
+          },
+          monitoring: {
+            logLevel: 'error',
+            sentryDsn: null,
+          },
+          isProduction: false,
+          isDevelopment: true,
+        },
+      }));
+
+      const { debug: debugFn, info: infoFn, warn: warnFn, error: errorFn } = require('../../utils/logger');
+
+      consoleDebugSpy.mockClear();
+      consoleInfoSpy.mockClear();
+      consoleWarnSpy.mockClear();
+      consoleErrorSpy.mockClear();
+
+      debugFn('Debug message');
+      infoFn('Info message');
+      warnFn('Warn message');
+      errorFn('Error message');
+
+      // Only error should be logged
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
+      expect(consoleInfoSpy).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    it('should handle unknown log level by defaulting to info', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: false,
+          },
+          monitoring: {
+            logLevel: 'unknown-level',
+            sentryDsn: null,
+          },
+          isProduction: false,
+          isDevelopment: true,
+        },
+      }));
+
+      const { debug: debugFn, info: infoFn } = require('../../utils/logger');
+
+      consoleDebugSpy.mockClear();
+      consoleInfoSpy.mockClear();
+
+      debugFn('Debug message');
+      infoFn('Info message');
+
+      // Debug should be filtered out (default is INFO)
+      expect(consoleDebugSpy).not.toHaveBeenCalled();
+      // Info should be logged
+      expect(consoleInfoSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Production Mode - Specification: Logger should handle production mode correctly', () => {
+    it('should attempt to send logs to cloud logging in production', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: true,
+          },
+          monitoring: {
+            logLevel: 'info',
+            sentryDsn: 'https://example.sentry.io',
+          },
+          isProduction: true,
+          isDevelopment: false,
+        },
+      }));
+
+      const { info: infoFn } = require('../../utils/logger');
+
+      consoleInfoSpy.mockClear();
+
+      // Should not throw even if cloud logging is not configured
+      expect(() => infoFn('Production log')).not.toThrow();
+      expect(consoleInfoSpy).toHaveBeenCalled();
+    });
+
+    it('should not send to cloud logging when error reporting is disabled', () => {
+      jest.resetModules();
+      jest.mock('../../config/environment', () => ({
+        __esModule: true,
+        default: {
+          features: {
+            errorReporting: false,
+          },
+          monitoring: {
+            logLevel: 'info',
+            sentryDsn: null,
+          },
+          isProduction: true,
+          isDevelopment: false,
+        },
+      }));
+
+      const { info: infoFn } = require('../../utils/logger');
+
+      consoleInfoSpy.mockClear();
+
+      expect(() => infoFn('Production log')).not.toThrow();
+      expect(consoleInfoSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Direct Performance Method - Specification: Performance method should log metrics', () => {
+    it('should log performance metrics directly using performance method', () => {
+      const { performance: perfFn } = require('../../utils/logger');
+
+      consoleInfoSpy.mockClear();
+
+      perfFn('custom-metric', 123, { operation: 'test' });
+
+      expect(consoleInfoSpy).toHaveBeenCalled();
+      const logOutput = consoleInfoSpy.mock.calls[0][0];
+      expect(logOutput).toContain('Performance');
+      expect(logOutput).toContain('custom-metric');
+      expect(logOutput).toContain('123');
+      expect(logOutput).toContain('operation');
+      expect(logOutput).toContain('test');
+    });
+  });
 });
