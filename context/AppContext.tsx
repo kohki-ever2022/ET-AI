@@ -20,7 +20,7 @@ const INITIAL_STATE: AppState = {
 };
 
 // --- TYPE DEFINITIONS ---
-interface AppState {
+export interface AppState {
   isInitialized: boolean;
   isAuthenticated: boolean;
   currentUser: User | null;
@@ -34,7 +34,7 @@ interface AppState {
   expandedProjects: Set<string>;
 }
 
-type AppAction =
+export type AppAction =
   | { type: 'INITIALIZE_DATA'; payload: { users: User[], projects: Project[], knowledge: Knowledge[] } }
   | { type: 'LOGIN'; payload: { email: string; role: 'admin' | 'employee' } }
   | { type: 'LOGOUT' }

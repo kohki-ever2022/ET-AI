@@ -27,6 +27,7 @@ jest.mock('../../context/AppContext', () => ({
 }));
 
 const createMockState = (overrides?: Partial<AppState>): AppState => ({
+  isInitialized: true,
   isAuthenticated: true,
   currentUser: {
     uid: 'admin-1',
@@ -143,7 +144,11 @@ const createMockState = (overrides?: Partial<AppState>): AppState => ({
       updatedAt: new Date(),
     },
   ],
+  activeProjectId: null,
+  activeChannelId: null,
+  searchQuery: '',
   isSidebarOpen: true,
+  expandedProjects: new Set(),
   ...overrides,
 });
 
