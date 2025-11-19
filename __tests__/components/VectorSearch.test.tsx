@@ -556,10 +556,19 @@ describe('VectorSearch Component', () => {
 
       // Results should be rendered with different similarities
       await waitFor(() => {
-        expect(screen.getByText(/Very high similarity/i)).toBeInTheDocument();
-        expect(screen.getByText(/High similarity/i)).toBeInTheDocument();
-        expect(screen.getByText(/Medium similarity/i)).toBeInTheDocument();
-        expect(screen.getByText(/Low similarity/i)).toBeInTheDocument();
+        // Use a more flexible text matcher that works with split text nodes
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === 'Very high similarity';
+        })).toBeInTheDocument();
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === 'High similarity';
+        })).toBeInTheDocument();
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === 'Medium similarity';
+        })).toBeInTheDocument();
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === 'Low similarity';
+        })).toBeInTheDocument();
       });
     });
   });
