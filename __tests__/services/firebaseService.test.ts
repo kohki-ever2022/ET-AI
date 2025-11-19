@@ -173,6 +173,8 @@ describe('firebaseService', () => {
   describe('addChatDoc - Specification: Should add chat messages to channels', () => {
     it('should add a chat and return full chat object', async () => {
       const result = await addChatDoc('proj-1', 'chan-1-1', {
+        channelId: 'chan-1-1',
+        projectId: 'proj-1',
         userId: 'user-123',
         userName: 'Test',
         userMessage: 'Test',
@@ -190,6 +192,8 @@ describe('firebaseService', () => {
 
     it('should return null for non-existent project', async () => {
       const result = await addChatDoc('non-existent', 'chan', {
+        channelId: 'chan',
+        projectId: 'non-existent',
         userId: 'test',
         userName: 'Test',
         userMessage: 'Test',
@@ -327,6 +331,8 @@ describe('firebaseService', () => {
   describe('sendMessage - Specification: Should send messages', () => {
     it('should send and return full message', async () => {
       const result = await sendMessage('proj-1', 'chan-1-1', {
+        channelId: 'chan-1-1',
+        projectId: 'proj-1',
         userId: 'user-123',
         userName: 'Test',
         userMessage: 'Msg',
@@ -381,6 +387,8 @@ describe('firebaseService', () => {
       });
 
       const message = await sendMessage(project.id, channel!.id, {
+        channelId: channel!.id,
+        projectId: project.id,
         userId: 'user',
         userName: 'User',
         userMessage: 'Test',
