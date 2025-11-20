@@ -58,12 +58,12 @@ function createFiscalYear(
   return {
     id: fiscalYearId,
     projectId,
-    startDate: Timestamp.fromDate(startDate),
-    endDate: Timestamp.fromDate(endDate),
+    startDate: Timestamp.fromDate(startDate) as any,
+    endDate: Timestamp.fromDate(endDate) as any,
     label: `${fiscalYearId}年度`,
     status: 'in-progress',
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
+    createdAt: Timestamp.now() as any,
+    updatedAt: Timestamp.now() as any,
   };
 }
 
@@ -93,13 +93,13 @@ function createQuarterlyPeriods(
       projectId,
       periodType: 'quarterly',
       periodNumber: i + 1,
-      startDate: Timestamp.fromDate(startDate),
-      endDate: Timestamp.fromDate(endDate),
+      startDate: Timestamp.fromDate(startDate) as any,
+      endDate: Timestamp.fromDate(endDate) as any,
       label: `第${i + 1}四半期`,
       shareholderCommunicationChannelIds: [],
       status: 'not-started',
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      createdAt: Timestamp.now() as any,
+      updatedAt: Timestamp.now() as any,
     });
   }
 
@@ -132,13 +132,13 @@ function createHalfYearlyPeriods(
       projectId,
       periodType: 'half-yearly',
       periodNumber: i + 1,
-      startDate: Timestamp.fromDate(startDate),
-      endDate: Timestamp.fromDate(endDate),
+      startDate: Timestamp.fromDate(startDate) as any,
+      endDate: Timestamp.fromDate(endDate) as any,
       label: i === 0 ? '上半期' : '下半期',
       shareholderCommunicationChannelIds: [],
       status: 'not-started',
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+      createdAt: Timestamp.now() as any,
+      updatedAt: Timestamp.now() as any,
     });
   }
 
@@ -163,13 +163,13 @@ function createAnnualPeriod(
     projectId,
     periodType: 'annual',
     periodNumber: 1,
-    startDate: Timestamp.fromDate(startDate),
-    endDate: Timestamp.fromDate(endDate),
+    startDate: Timestamp.fromDate(startDate) as any,
+    endDate: Timestamp.fromDate(endDate) as any,
     label: '通期',
     shareholderCommunicationChannelIds: [],
     status: 'not-started',
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
+    createdAt: Timestamp.now() as any,
+    updatedAt: Timestamp.now() as any,
   };
 }
 

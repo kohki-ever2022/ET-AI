@@ -5,7 +5,20 @@
  * 大量文章を5000文字ごとにチャンク化してサブコレクションに保存します。
  */
 
-import { getFirestore, Timestamp, WriteBatch } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  getDocs,
+  deleteDoc,
+  writeBatch,
+  query,
+  orderBy,
+  Timestamp,
+} from 'firebase/firestore';
 import type { Chat, ChatChunk } from '../types/firestore';
 import { COLLECTIONS } from '../types/firestore';
 
@@ -115,14 +128,14 @@ export async function saveLongFormChat(params: SaveLongFormChatParams): Promise<
     metadata,
   } = params;
 
-  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
+  const chatRef = doc(db, COLLECTIONS.CHATS, chatId);
 
   // aiResponseが長文かどうかをチェック
   const isLongForm = isLongFormContent(aiResponse);
 
   if (!isLongForm) {
     // 通常のチャットとして保存（チャンク化不要）
-    await chatRef.set({
+    await setDoc(chatRef, {
       id: chatId,
       projectId,
       channelId,
@@ -161,14 +174,15 @@ export async function saveLongFormChat(params: SaveLongFormChatParams): Promise<
   };
 
   // バッチ書き込み開始
-  const batch = db.batch();
+  const batch = writeBatch(db);
 
   // メインチャットドキュメントを書き込み
   batch.set(chatRef, chatData);
 
   // チャンクを書き込み
+  const chunksCollectionRef = collection(db, COLLECTIONS.CHATS, chatId, COLLECTIONS.CHAT_CHUNKS);
   chunks.forEach((chunk, index) => {
-    const chunkRef = chatRef.collection(COLLECTIONS.CHAT_CHUNKS).doc(String(index));
+    const chunkRef = doc(chunksCollectionRef, String(index));
     const chunkData: ChatChunk = {
       chatId,
       chunkIndex: index,
@@ -207,10 +221,10 @@ export async function loadLongFormChat(chatId: string): Promise<LoadLongFormChat
   const startTime = performance.now();
   const db = getFirestore();
 
-  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
-  const chatDoc = await chatRef.get();
+  const chatRef = doc(db, COLLECTIONS.CHATS, chatId);
+  const chatDoc = await getDoc(chatRef);
 
-  if (!chatDoc.exists) {
+  if (!chatDoc.exists()) {
     throw new Error(`チャット ${chatId} が見つかりません`);
   }
 
@@ -227,10 +241,9 @@ export async function loadLongFormChat(chatId: string): Promise<LoadLongFormChat
   }
 
   // チャンク化されたチャット
-  const chunksSnapshot = await chatRef
-    .collection(COLLECTIONS.CHAT_CHUNKS)
-    .orderBy('chunkIndex', 'asc')
-    .get();
+  const chunksCollectionRef = collection(db, COLLECTIONS.CHATS, chatId, COLLECTIONS.CHAT_CHUNKS);
+  const chunksQuery = query(chunksCollectionRef, orderBy('chunkIndex', 'asc'));
+  const chunksSnapshot = await getDocs(chunksQuery);
 
   const chunks: string[] = [];
   chunksSnapshot.docs.forEach((doc) => {
@@ -275,10 +288,10 @@ export async function loadLongFormChat(chatId: string): Promise<LoadLongFormChat
 export async function* streamLongFormChat(chatId: string): AsyncGenerator<string, void, unknown> {
   const db = getFirestore();
 
-  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
-  const chatDoc = await chatRef.get();
+  const chatRef = doc(db, COLLECTIONS.CHATS, chatId);
+  const chatDoc = await getDoc(chatRef);
 
-  if (!chatDoc.exists) {
+  if (!chatDoc.exists()) {
     throw new Error(`チャット ${chatId} が見つかりません`);
   }
 
@@ -291,13 +304,12 @@ export async function* streamLongFormChat(chatId: string): AsyncGenerator<string
   }
 
   // チャンク化されたチャット
-  const chunksSnapshot = await chatRef
-    .collection(COLLECTIONS.CHAT_CHUNKS)
-    .orderBy('chunkIndex', 'asc')
-    .get();
+  const chunksCollectionRef = collection(db, COLLECTIONS.CHATS, chatId, COLLECTIONS.CHAT_CHUNKS);
+  const chunksQuery = query(chunksCollectionRef, orderBy('chunkIndex', 'asc'));
+  const chunksSnapshot = await getDocs(chunksQuery);
 
-  for (const doc of chunksSnapshot.docs) {
-    const chunkData = doc.data() as ChatChunk;
+  for (const docSnap of chunksSnapshot.docs) {
+    const chunkData = docSnap.data() as ChatChunk;
     yield chunkData.content;
   }
 }
@@ -319,9 +331,9 @@ export async function updateLongFormChatApproval(
   approvedBy: string
 ): Promise<void> {
   const db = getFirestore();
-  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
+  const chatRef = doc(db, COLLECTIONS.CHATS, chatId);
 
-  await chatRef.update({
+  await updateDoc(chatRef, {
     approved,
     approvedBy,
     approvedAt: approved ? Timestamp.now() : null,
@@ -341,10 +353,10 @@ export async function updateLongFormChatApproval(
  */
 export async function deleteLongFormChat(chatId: string): Promise<void> {
   const db = getFirestore();
-  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
-  const chatDoc = await chatRef.get();
+  const chatRef = doc(db, COLLECTIONS.CHATS, chatId);
+  const chatDoc = await getDoc(chatRef);
 
-  if (!chatDoc.exists) {
+  if (!chatDoc.exists()) {
     console.warn(`⚠️  チャット ${chatId} が見つかりません`);
     return;
   }
@@ -353,11 +365,12 @@ export async function deleteLongFormChat(chatId: string): Promise<void> {
 
   // チャンク化されたチャットの場合、チャンクも削除
   if (chat.isLongForm) {
-    const chunksSnapshot = await chatRef.collection(COLLECTIONS.CHAT_CHUNKS).get();
+    const chunksCollectionRef = collection(db, COLLECTIONS.CHATS, chatId, COLLECTIONS.CHAT_CHUNKS);
+    const chunksSnapshot = await getDocs(chunksCollectionRef);
 
-    const batch = db.batch();
-    chunksSnapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
+    const batch = writeBatch(db);
+    chunksSnapshot.docs.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
     });
 
     // メインチャットも削除
@@ -367,7 +380,7 @@ export async function deleteLongFormChat(chatId: string): Promise<void> {
     console.log(`✅ 長文チャット削除完了: ${chatId} (${chunksSnapshot.size}チャンク削除)`);
   } else {
     // 通常のチャット
-    await chatRef.delete();
+    await deleteDoc(chatRef);
     console.log(`✅ チャット削除完了: ${chatId}`);
   }
 }
@@ -386,10 +399,10 @@ export async function getChunkStatistics(chatId: string): Promise<{
   chunkSizes: number[];
 }> {
   const db = getFirestore();
-  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
-  const chatDoc = await chatRef.get();
+  const chatRef = doc(db, COLLECTIONS.CHATS, chatId);
+  const chatDoc = await getDoc(chatRef);
 
-  if (!chatDoc.exists) {
+  if (!chatDoc.exists()) {
     throw new Error(`チャット ${chatId} が見つかりません`);
   }
 
@@ -404,11 +417,12 @@ export async function getChunkStatistics(chatId: string): Promise<{
     };
   }
 
-  const chunksSnapshot = await chatRef.collection(COLLECTIONS.CHAT_CHUNKS).get();
+  const chunksCollectionRef = collection(db, COLLECTIONS.CHATS, chatId, COLLECTIONS.CHAT_CHUNKS);
+  const chunksSnapshot = await getDocs(chunksCollectionRef);
 
   const chunkSizes: number[] = [];
-  chunksSnapshot.docs.forEach((doc) => {
-    const chunkData = doc.data() as ChatChunk;
+  chunksSnapshot.docs.forEach((docSnap) => {
+    const chunkData = docSnap.data() as ChatChunk;
     chunkSizes.push(chunkData.charCount);
   });
 
