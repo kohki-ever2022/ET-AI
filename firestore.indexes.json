@@ -456,6 +456,20 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "chunks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "chatId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "chunkIndex",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

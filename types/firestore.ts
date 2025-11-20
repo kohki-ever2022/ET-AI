@@ -161,6 +161,25 @@ export interface Chat {
     cacheReadTokens?: number;
     processingTime?: number;
   };
+
+  // 大量文章対応（2万〜3万文字の統合報告書など）
+  isLongForm?: boolean; // 5000文字超の場合true
+  totalCharCount?: number; // 全体の文字数
+  totalChunks?: number; // チャンク数
+  chunksCollectionPath?: string; // チャンクのサブコレクションパス（例: "chats/{chatId}/chunks"）
+}
+
+// ============================================================================
+// Chat Chunks Collection (Sub-collection of Chats)
+// ============================================================================
+
+export interface ChatChunk {
+  chatId: string;
+  chunkIndex: number; // 0, 1, 2, ...（順序）
+  totalChunks: number; // 全チャンク数
+  content: string; // 最大5000文字のコンテンツ
+  charCount: number; // このチャンクの文字数
+  createdAt: Timestamp;
 }
 
 // ============================================================================
@@ -374,6 +393,7 @@ export const COLLECTIONS = {
   PERIODS: 'periods', // Sub-collection of fiscalYears
   CHANNELS: 'channels',
   CHATS: 'chats',
+  CHAT_CHUNKS: 'chunks', // Sub-collection of chats
   KNOWLEDGE: 'knowledge',
   DOCUMENTS: 'documents',
   SYSTEM_PROMPTS: 'system_prompts',
