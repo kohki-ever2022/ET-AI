@@ -13,7 +13,11 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "validate:reduction": "ts-node scripts/validate-read-reduction.ts",
+    "deploy:indexes": "firebase deploy --only firestore:indexes",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:all": "firebase deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.69.0",
@@ -49,6 +53,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18",
     "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

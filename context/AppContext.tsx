@@ -39,6 +39,7 @@ export type AppAction =
   | { type: 'LOGIN'; payload: { email: string; role: 'admin' | 'employee' } }
   | { type: 'LOGOUT' }
   | { type: 'SELECT_ADMIN_DASHBOARD' }
+  | { type: 'SELECT_PERFORMANCE_DASHBOARD' }
   | { type: 'CREATE_PROJECT'; payload: { name: string } }
   | { type: 'SELECT_PROJECT'; payload: { projectId: string } }
   | { type: 'TOGGLE_EXPAND_PROJECT'; payload: { projectId: string } }
@@ -90,6 +91,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...INITIAL_STATE, isInitialized: true, users: state.users };
     case 'SELECT_ADMIN_DASHBOARD':
         return { ...state, activeProjectId: 'ADMIN_DASHBOARD', activeChannelId: null };
+    case 'SELECT_PERFORMANCE_DASHBOARD':
+        return { ...state, activeProjectId: 'PERFORMANCE_DASHBOARD', activeChannelId: null };
     case 'CREATE_PROJECT': {
       const newProject: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> = {
         companyName: action.payload.name,
