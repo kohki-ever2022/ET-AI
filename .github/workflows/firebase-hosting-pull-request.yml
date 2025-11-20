@@ -48,9 +48,30 @@ jobs:
         id: deploy
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          PREVIEW_URL=$(firebase hosting:channel:deploy pr-${{ github.event.pull_request.number }} \
+
+          # Deploy to preview channel and capture full output
+          DEPLOY_OUTPUT=$(firebase hosting:channel:deploy pr-${{ github.event.pull_request.number }} \
             --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} \
-            --json | jq -r '.result.url')
+            --json 2>&1)
+
+          echo "Firebase CLI Output:"
+          echo "$DEPLOY_OUTPUT"
+
+          # Extract preview URL from the output
+          PREVIEW_URL=$(echo "$DEPLOY_OUTPUT" | jq -r '.result.url // empty')
+
+          # If jq extraction fails, try alternative parsing
+          if [ -z "$PREVIEW_URL" ] || [ "$PREVIEW_URL" = "null" ]; then
+            echo "Warning: Could not extract URL from JSON. Trying alternative method..."
+            PREVIEW_URL=$(echo "$DEPLOY_OUTPUT" | grep -oP 'https://[^\s"]+' | head -1)
+          fi
+
+          if [ -z "$PREVIEW_URL" ] || [ "$PREVIEW_URL" = "null" ]; then
+            echo "Error: Failed to extract preview URL"
+            exit 1
+          fi
+
+          echo "Preview URL: $PREVIEW_URL"
           echo "preview_url=$PREVIEW_URL" >> $GITHUB_OUTPUT
 
       - name: Comment PR with preview URL
@@ -59,6 +80,23 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const previewUrl = '${{ steps.deploy.outputs.preview_url }}';
+
+            if (!previewUrl || previewUrl === 'null' || previewUrl === '') {
+              const errorComment = `## ❌ Firebase Hosting Preview Failed
+
+              Failed to deploy preview or extract preview URL.
+              Please check the GitHub Actions logs for more details.
+              `;
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: errorComment
+              });
+              return;
+            }
+
             const comment = `## 🚀 Firebase Hosting Preview
 
             ✅ Preview deployed successfully!

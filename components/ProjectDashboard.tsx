@@ -29,7 +29,7 @@ const ProjectItem: React.FC<{ project: Project }> = ({ project }) => {
                         <ChevronRightIcon className={`w-4 h-4 transition-transform motion-reduce:transition-none ${isExpanded ? 'rotate-90' : ''}`} />
                     </span>
                     <ProjectIcon className={`w-5 h-5 ml-1 mr-2 flex-shrink-0 ${isActive ? 'text-apple-blue-light dark:text-apple-blue-dark' : 'text-apple-label-secondary-light dark:text-apple-label-secondary-dark group-hover:text-apple-label-light dark:group-hover:text-apple-label-dark'}`} />
-                    <span className={`text-apple-body truncate ${isActive ? 'text-apple-label-light dark:text-apple-label-dark font-sf-semibold' : 'text-apple-label-light dark:text-apple-label-dark'}`}>{project.companyName}</span>
+                    <span className={`text-apple-body truncate font-sf-medium ${isActive ? 'text-apple-label-light dark:text-apple-label-dark font-sf-semibold' : 'text-apple-label-light dark:text-apple-label-dark'}`}>{project.companyName}</span>
                 </button>
             </div>
         </div>
@@ -48,7 +48,7 @@ const ChannelList: React.FC<{ channels: Channel[], activeChannelId: string | nul
     };
     
     return (
-        <div className="flex flex-col flex-grow bg-apple-bg-secondary-light/50 dark:bg-apple-bg-secondary-dark/50 p-apple-md border-r border-white/20 dark:border-white/10 min-w-[280px]">
+        <div className="flex flex-col flex-grow bg-white/95 dark:bg-black/90 backdrop-blur-2xl p-apple-md border-r-2 border-white/30 dark:border-white/20 min-w-[280px] shadow-lg">
              <div className="flex justify-between items-center mb-apple-base">
                 <h2 className="text-apple-headline font-sf-semibold text-apple-label-light dark:text-apple-label-dark">チャンネル</h2>
                 <button onClick={handleCreateChannel} className="p-1 text-apple-blue-light dark:text-apple-blue-dark hover:bg-apple-blue-light/10 dark:hover:bg-apple-blue-dark/10 rounded-full">
@@ -61,7 +61,7 @@ const ChannelList: React.FC<{ channels: Channel[], activeChannelId: string | nul
                         key={channel.id}
                         // FIX: Dispatch the correct action type and payload for selecting a channel.
                         onClick={() => dispatch({ type: 'SELECT_CHANNEL', payload: { projectId, channelId: channel.id } })}
-                        className={`w-full flex items-center p-apple-sm rounded-apple-button cursor-pointer transition-colors duration-200 motion-reduce:transition-none text-apple-body text-left ${activeChannelId === channel.id ? 'bg-apple-blue-light dark:bg-apple-blue-dark text-white font-sf-semibold' : 'text-apple-label-secondary-light dark:text-apple-label-secondary-dark hover:bg-apple-fill-tertiary-light dark:hover:bg-apple-fill-tertiary-dark hover:text-apple-label-light dark:hover:text-apple-label-dark'}`}
+                        className={`w-full flex items-center p-apple-sm rounded-apple-button cursor-pointer transition-colors duration-200 motion-reduce:transition-none text-apple-body text-left ${activeChannelId === channel.id ? 'bg-apple-blue-light dark:bg-apple-blue-dark text-white font-sf-semibold shadow-sm' : 'text-apple-label-light dark:text-apple-label-dark hover:bg-white/50 dark:hover:bg-black/50 hover:shadow-sm'}`}
                         aria-current={activeChannelId === channel.id ? 'page' : undefined}
                     >
                         <ChatIcon className="w-4 h-4 mr-apple-sm flex-shrink-0" />
@@ -97,7 +97,7 @@ export const Sidebar: React.FC = () => {
 
     return (
         <div className="flex h-full">
-            <aside className="flex flex-col h-full w-72 bg-white/70 dark:bg-black/60 backdrop-blur-xl p-apple-md border-r border-white/20 dark:border-white/10">
+            <aside className="flex flex-col h-full w-72 bg-white/92 dark:bg-black/85 backdrop-blur-2xl p-apple-md border-r-2 border-white/30 dark:border-white/20 shadow-xl">
                 <div className="flex-shrink-0 flex flex-col items-start pb-apple-md">
                     <div className="flex items-center">
                         <TriasLogo className="w-8 h-8" />
@@ -114,7 +114,7 @@ export const Sidebar: React.FC = () => {
                         placeholder="検索..." 
                         value={searchQuery}
                         onChange={(e) => dispatch({ type: 'SET_SEARCH_QUERY', payload: e.target.value })}
-                        className="w-full bg-white/50 dark:bg-black/50 border border-apple-label-quaternary-light/50 dark:border-apple-label-quaternary-dark/50 rounded-apple-field py-apple-sm pl-10 pr-apple-base text-apple-label-light dark:text-apple-label-dark placeholder:text-apple-label-tertiary-light dark:placeholder:text-apple-label-tertiary-dark focus:outline-none focus:ring-2 focus:ring-apple-blue-light dark:focus:ring-apple-blue-dark focus:border-apple-blue-light dark:focus:border-apple-blue-dark transition-colors motion-reduce:transition-none" 
+                        className="w-full bg-white/80 dark:bg-black/70 border-2 border-white/40 dark:border-white/30 rounded-apple-field py-apple-sm pl-10 pr-apple-base text-apple-label-light dark:text-apple-label-dark placeholder:text-apple-label-tertiary-light dark:placeholder:text-apple-label-tertiary-dark focus:outline-none focus:ring-2 focus:ring-apple-blue-light dark:focus:ring-apple-blue-dark focus:border-apple-blue-light dark:focus:border-apple-blue-dark transition-colors motion-reduce:transition-none shadow-sm" 
                     />
                 </div>
 

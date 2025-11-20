@@ -12,9 +12,20 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden text-apple-label-light dark:text-apple-label-dark bg-apple-bg-secondary-light dark:bg-apple-bg-secondary-dark">
+    <div
+      className="flex h-screen w-screen overflow-hidden text-apple-label-light dark:text-apple-label-dark"
+      style={{
+        background: 'linear-gradient(to right, #7DD3FC 0%, #D8BFD8 50%, #4338CA 100%)',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       {state.isSidebarOpen && <Sidebar />}
-      <main className="flex-1 h-full flex flex-col bg-apple-bg-primary-light dark:bg-apple-bg-primary-dark">
+      <main
+        className="flex-1 h-full flex flex-col"
+        style={{
+          background: 'transparent'
+        }}
+      >
         <MainView />
       </main>
     </div>

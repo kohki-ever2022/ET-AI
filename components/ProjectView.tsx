@@ -77,7 +77,7 @@ export const MainView: React.FC = () => {
                 </div>
             ) : (
                 <>
-                    <header className="flex-shrink-0 flex justify-between items-center p-apple-md border-b border-white/20 dark:border-white/10 bg-white/20 dark:bg-black/20 backdrop-blur-lg">
+                    <header className="flex-shrink-0 flex justify-between items-center p-apple-md border-b-2 border-white/30 dark:border-white/20 bg-white/80 dark:bg-black/70 backdrop-blur-xl shadow-sm">
                         <div className="flex items-center min-w-0">
                             {!isSidebarOpen && (
                                 <button onClick={() => dispatch({type: 'TOGGLE_SIDEBAR'})} className="p-2 rounded-apple-button hover:bg-apple-fill-tertiary-light dark:hover:bg-apple-fill-tertiary-dark mr-apple-sm transition-colors motion-reduce:transition-none">

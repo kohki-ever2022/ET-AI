@@ -33,6 +33,14 @@ describe('VectorSearch Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(async () => {
+    await act(async () => {
+      jest.runOnlyPendingTimers();
+    });
+    jest.useRealTimers();
   });
 
   describe('Rendering', () => {
@@ -94,15 +102,16 @@ describe('VectorSearch Component', () => {
       render(<VectorSearch projectId={mockProjectId} />);
 
       const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
-      fireEvent.change(searchInput, { target: { value: '統合報告書' } });
 
-      // Wait for debounce (500ms)
-      await waitFor(
-        () => {
-          expect(mockVectorSearch).toHaveBeenCalled();
-        },
-        { timeout: 1000 }
-      );
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: '統合報告書' } });
+        // Advance timers to trigger debounced search
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(mockVectorSearch).toHaveBeenCalled();
+      });
     });
 
     it('should not search with empty query', () => {
@@ -143,9 +152,13 @@ describe('VectorSearch Component', () => {
 
       // Set search query first
       const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
-      fireEvent.change(searchInput, { target: { value: '統合報告書' } });
 
-      // Wait for debounced search
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: '統合報告書' } });
+        // Advance timers to trigger debounced search
+        jest.advanceTimersByTime(500);
+      });
+
       await waitFor(() => {
         expect(mockVectorSearch).toHaveBeenCalled();
       });
@@ -153,12 +166,15 @@ describe('VectorSearch Component', () => {
       // Clear mock
       mockVectorSearch.mockClear();
 
-      // Change category
-      const categorySelect = screen.getByRole('combobox');
-      fireEvent.change(categorySelect, { target: { value: 'integrated-report' } });
+      // Change category - this triggers immediate search (not debounced)
+      await act(async () => {
+        const categorySelect = screen.getByRole('combobox');
+        fireEvent.change(categorySelect, { target: { value: 'integrated-report' } });
+      });
 
-      // Should trigger immediate search
-      expect(mockVectorSearch).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockVectorSearch).toHaveBeenCalled();
+      });
     });
   });
 
@@ -277,7 +293,12 @@ describe('VectorSearch Component', () => {
       render(<VectorSearch projectId={mockProjectId} />);
 
       const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
-      fireEvent.change(searchInput, { target: { value: 'nonexistent query' } });
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'nonexistent query' } });
+        // Advance timers to trigger debounced search
+        jest.advanceTimersByTime(500);
+      });
 
       await waitFor(() => {
         expect(screen.getByText(/該当するナレッジが見つかりませんでした/i)).toBeInTheDocument();
@@ -353,7 +374,12 @@ describe('VectorSearch Component', () => {
       render(<VectorSearch projectId={mockProjectId} />);
 
       const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
-      fireEvent.change(searchInput, { target: { value: 'test' } });
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        // Advance timers to trigger debounced search
+        jest.advanceTimersByTime(500);
+      });
 
       await waitFor(() => {
         expect(screen.getByText(/検索中にエラーが発生しました/i)).toBeInTheDocument();
@@ -363,22 +389,13 @@ describe('VectorSearch Component', () => {
 
   describe('Loading State', () => {
     it('should show loading indicator during search', async () => {
-      const mockVectorSearch = jest.fn().mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  data: {
-                    success: true,
-                    results: [],
-                    count: 0,
-                  },
-                }),
-              200
-            )
-          )
-      );
+      const mockVectorSearch = jest.fn().mockResolvedValue({
+        data: {
+          success: true,
+          results: [],
+          count: 0,
+        },
+      });
 
       mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
 
@@ -388,17 +405,173 @@ describe('VectorSearch Component', () => {
 
       await act(async () => {
         fireEvent.change(searchInput, { target: { value: 'test' } });
-        // Wait for debounce to trigger
-        await new Promise(resolve => setTimeout(resolve, 600));
+        // Advance timers to trigger debounced search
+        jest.advanceTimersByTime(500);
       });
 
-      // Check if loading state appears or search completes
-      await waitFor(
-        () => {
-          expect(mockVectorSearch).toHaveBeenCalled();
-        },
-        { timeout: 2000 }
-      );
+      await waitFor(() => {
+        expect(mockVectorSearch).toHaveBeenCalled();
+      });
     });
   });
+
+
+  describe('Search Success False', () => {
+    it('should display error message when search returns success:false', async () => {
+      const mockVectorSearch = jest.fn().mockResolvedValue({
+        data: {
+          success: false,
+          results: [],
+          count: 0,
+        },
+      });
+
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
+
+      render(<VectorSearch projectId={mockProjectId} />);
+
+      const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/検索に失敗しました/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Additional Coverage - Empty Query and Whitespace', () => {
+    it('should clear results when search query becomes empty after having results', async () => {
+      const mockVectorSearch = jest.fn().mockResolvedValue({
+        data: {
+          success: true,
+          results: [
+            {
+              knowledge: {
+                id: 'knowledge-1',
+                content: 'Test content',
+                category: 'company-info',
+              },
+              similarity: 0.95,
+              distance: 0.05,
+            },
+          ],
+          count: 1,
+        },
+      });
+
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
+
+      render(<VectorSearch projectId={mockProjectId} />);
+
+      const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
+
+      // First, perform a search with valid query
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(mockVectorSearch).toHaveBeenCalled();
+      });
+
+      // Clear the query
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: '   ' } });
+        jest.advanceTimersByTime(500);
+      });
+
+      // Should show empty state
+      await waitFor(() => {
+        expect(screen.getByText(/検索キーワードを入力してください/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Similarity Color Coding', () => {
+    it('should render results with different similarity colors', async () => {
+      const mockVectorSearch = jest.fn().mockResolvedValue({
+        data: {
+          success: true,
+          results: [
+            {
+              knowledge: {
+                id: 'knowledge-1',
+                content: 'Very high similarity',
+                category: 'company-info',
+              },
+              similarity: 0.95,
+              distance: 0.05,
+            },
+            {
+              knowledge: {
+                id: 'knowledge-2',
+                content: 'High similarity',
+                category: 'company-info',
+              },
+              similarity: 0.85,
+              distance: 0.15,
+            },
+            {
+              knowledge: {
+                id: 'knowledge-3',
+                content: 'Medium similarity',
+                category: 'company-info',
+              },
+              similarity: 0.75,
+              distance: 0.25,
+            },
+            {
+              knowledge: {
+                id: 'knowledge-4',
+                content: 'Low similarity',
+                category: 'company-info',
+              },
+              similarity: 0.65,
+              distance: 0.35,
+            },
+          ],
+          count: 4,
+        },
+      });
+
+      mockHttpsCallable.mockReturnValue(createMockCallable(mockVectorSearch));
+
+      render(<VectorSearch projectId={mockProjectId} />);
+
+      const searchInput = screen.getByPlaceholderText(/ナレッジベースを検索/i);
+
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: 'test' } });
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(mockVectorSearch).toHaveBeenCalled();
+      });
+
+      // Results should be rendered with different similarities
+      await waitFor(() => {
+        // Use a more flexible text matcher that works with split text nodes
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === 'Very high similarity';
+        })).toBeInTheDocument();
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === 'High similarity';
+        })).toBeInTheDocument();
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === 'Medium similarity';
+        })).toBeInTheDocument();
+        expect(screen.getByText((content, element) => {
+          return element?.textContent === 'Low similarity';
+        })).toBeInTheDocument();
+      });
+    });
+  });
+
 });
+

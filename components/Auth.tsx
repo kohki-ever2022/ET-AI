@@ -40,7 +40,13 @@ export const Auth: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen w-screen">
+    <div
+      className="flex items-center justify-center h-screen w-screen"
+      style={{
+        background: 'linear-gradient(to right, #7DD3FC 0%, #D8BFD8 50%, #4338CA 100%)',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <div className="w-full max-w-md p-apple-xl space-y-apple-xl bg-white/60 dark:bg-black/50 backdrop-blur-lg rounded-apple-card shadow-apple-modal border border-white/20 dark:border-white/10">
         <div className="flex flex-col items-center text-center">
           <TriasLogo className="w-16 h-16" />
@@ -59,7 +65,7 @@ export const Auth: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-apple-field relative block w-full px-apple-base py-apple-md min-h-touch bg-white/70 dark:bg-black/50 placeholder:text-apple-label-tertiary-light dark:placeholder:text-apple-label-secondary-dark text-apple-label-light dark:text-apple-label-dark border border-apple-gray4-light/50 dark:border-apple-gray4-dark/50 focus:outline-none focus:ring-2 focus:ring-apple-blue-light dark:focus:ring-apple-blue-dark focus:border-apple-blue-light dark:focus:border-apple-blue-dark text-apple-body"
+                className="appearance-none rounded-apple-field relative block w-full px-apple-base py-apple-md min-h-touch bg-white/95 dark:bg-black/80 placeholder:text-apple-label-tertiary-light dark:placeholder:text-apple-label-tertiary-dark text-apple-label-light dark:text-apple-label-dark border-2 border-white/40 dark:border-white/20 focus:outline-none focus:ring-2 focus:ring-apple-blue-light dark:focus:ring-apple-blue-dark focus:border-apple-blue-light dark:focus:border-apple-blue-dark text-apple-body backdrop-blur-sm shadow-sm"
                 placeholder="メール (user@trias.co.jp)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -71,7 +77,7 @@ export const Auth: React.FC = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-apple-field relative block w-full px-apple-base py-apple-md min-h-touch bg-white/70 dark:bg-black/50 placeholder:text-apple-label-tertiary-light dark:placeholder:text-apple-label-secondary-dark text-apple-label-light dark:text-apple-label-dark border border-apple-gray4-light/50 dark:border-apple-gray4-dark/50 focus:outline-none focus:ring-2 focus:ring-apple-blue-light dark:focus:ring-apple-blue-dark focus:border-apple-blue-light dark:focus:border-apple-blue-dark text-apple-body"
+                className="appearance-none rounded-apple-field relative block w-full px-apple-base py-apple-md min-h-touch bg-white/95 dark:bg-black/80 placeholder:text-apple-label-tertiary-light dark:placeholder:text-apple-label-tertiary-dark text-apple-label-light dark:text-apple-label-dark border-2 border-white/40 dark:border-white/20 focus:outline-none focus:ring-2 focus:ring-apple-blue-light dark:focus:ring-apple-blue-dark focus:border-apple-blue-light dark:focus:border-apple-blue-dark text-apple-body backdrop-blur-sm shadow-sm"
                 placeholder="パスワード (password)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

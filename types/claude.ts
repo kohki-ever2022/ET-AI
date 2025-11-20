@@ -95,18 +95,28 @@ export const PRICING = {
   CACHE_READ_PER_MILLION: 0.3, // $0.30 per MTok
 } as const;
 
-export function calculateCost(usage: {
+/**
+ * Token usage information from Claude API
+ */
+export interface TokenUsage {
   inputTokens: number;
   cacheCreationInputTokens: number;
   cacheReadInputTokens: number;
   outputTokens: number;
-}): {
+}
+
+/**
+ * Cost breakdown for Claude API usage
+ */
+export interface CostBreakdown {
   inputCost: number;
   cacheWriteCost: number;
   cacheReadCost: number;
   outputCost: number;
   totalCost: number;
-} {
+}
+
+export function calculateCost(usage: TokenUsage): CostBreakdown {
   const inputCost = (usage.inputTokens / 1_000_000) * PRICING.INPUT_PER_MILLION;
   const cacheWriteCost = (usage.cacheCreationInputTokens / 1_000_000) * PRICING.CACHE_WRITE_PER_MILLION;
   const cacheReadCost = (usage.cacheReadInputTokens / 1_000_000) * PRICING.CACHE_READ_PER_MILLION;

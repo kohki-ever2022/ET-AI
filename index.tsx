@@ -1,8 +1,9 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { AppDemo } from './AppDemo';
+import App from './App';
 import { AppProvider } from './context/AppContext';
+import { ToastProvider } from './components/ui/Toast';
 import './styles/index.css';
 
 const rootElement = document.getElementById('root');
@@ -13,8 +14,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <AppProvider>
-      <AppDemo />
-    </AppProvider>
+    <ToastProvider>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </ToastProvider>
   </React.StrictMode>
 );

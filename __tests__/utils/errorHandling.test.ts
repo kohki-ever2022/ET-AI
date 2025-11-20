@@ -9,6 +9,9 @@ import {
   classifyError,
   getUserFriendlyErrorMessage,
   isRetryableError,
+  getErrorSeverity,
+  shouldNotifyAdmin,
+  tryCatch,
 } from '../../utils/errorHandling';
 
 describe('Error Handling Utils', () => {
@@ -191,6 +194,118 @@ describe('Error Handling Utils', () => {
     it('should mark API errors as non-retryable', () => {
       const error = new Error('Unknown error');
       expect(isRetryableError(error)).toBe(false);
+    });
+  });
+
+  describe('getErrorSeverity', () => {
+    it('should return "low" for validation errors', () => {
+      expect(getErrorSeverity('validation_error')).toBe('low');
+    });
+
+    it('should return "medium" for network errors', () => {
+      expect(getErrorSeverity('network_error')).toBe('medium');
+    });
+
+    it('should return "high" for rate limit errors', () => {
+      expect(getErrorSeverity('rate_limit')).toBe('high');
+    });
+
+    it('should return "critical" for token limit errors', () => {
+      expect(getErrorSeverity('token_limit')).toBe('critical');
+    });
+
+    it('should return "critical" for API errors', () => {
+      expect(getErrorSeverity('api_error')).toBe('critical');
+    });
+
+    it('should return "medium" for unknown error types', () => {
+      expect(getErrorSeverity('unknown' as any)).toBe('medium');
+    });
+  });
+
+  describe('shouldNotifyAdmin', () => {
+    it('should return true for critical errors', () => {
+      expect(shouldNotifyAdmin('api_error')).toBe(true);
+      expect(shouldNotifyAdmin('token_limit')).toBe(true);
+    });
+
+    it('should return true for high severity errors', () => {
+      expect(shouldNotifyAdmin('rate_limit')).toBe(true);
+    });
+
+    it('should return false for medium severity errors', () => {
+      expect(shouldNotifyAdmin('network_error')).toBe(false);
+    });
+
+    it('should return false for low severity errors', () => {
+      expect(shouldNotifyAdmin('validation_error')).toBe(false);
+    });
+  });
+
+  describe('tryCatch', () => {
+    it('should return result when function succeeds', async () => {
+      const successFn = jest.fn().mockResolvedValue('success');
+
+      const result = await tryCatch(successFn, {
+        userId: 'user-123',
+      });
+
+      expect(result).toBe('success');
+      expect(successFn).toHaveBeenCalled();
+    });
+
+    it('should return null when function throws error', async () => {
+      const errorFn = jest.fn().mockRejectedValue(new Error('Test error'));
+
+      const result = await tryCatch(errorFn, {
+        userId: 'user-123',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should call onError callback when error occurs', async () => {
+      const errorFn = jest.fn().mockRejectedValue(new Error('Test error'));
+      const onError = jest.fn();
+
+      await tryCatch(errorFn, { userId: 'user-123' }, onError);
+
+      expect(onError).toHaveBeenCalled();
+      const errorArg = onError.mock.calls[0][0];
+      expect(errorArg).toBeInstanceOf(ETAIError);
+    });
+
+    it('should preserve ETAIError when thrown', async () => {
+      const etaiError = new ETAIError('api_error', 'API failed', false);
+      const errorFn = jest.fn().mockRejectedValue(etaiError);
+      const onError = jest.fn();
+
+      await tryCatch(errorFn, { userId: 'user-123' }, onError);
+
+      expect(onError).toHaveBeenCalledWith(etaiError);
+    });
+
+    it('should wrap standard Error in ETAIError', async () => {
+      const error = new Error('Network error');
+      const errorFn = jest.fn().mockRejectedValue(error);
+      const onError = jest.fn();
+
+      await tryCatch(errorFn, { userId: 'user-123' }, onError);
+
+      expect(onError).toHaveBeenCalled();
+      const wrappedError = onError.mock.calls[0][0];
+      expect(wrappedError).toBeInstanceOf(ETAIError);
+      expect(wrappedError.type).toBe('network_error');
+      expect(wrappedError.originalError).toBe(error);
+    });
+
+    it('should work without onError callback', async () => {
+      const errorFn = jest.fn().mockRejectedValue(new Error('Test error'));
+
+      const result = await tryCatch(errorFn, { userId: 'user-123' });
+
+      expect(result).toBeNull();
+      // Should not throw even without onError
     });
   });
 });

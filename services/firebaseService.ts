@@ -189,3 +189,76 @@ export const deleteChatDoc = async (projectId: string, channelId: string, chatId
         }
     }
 }
+
+// --- Test Helper Functions ---
+
+export const createProject = async (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newProject: Project = {
+        ...projectData,
+        id: uuidv4(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
+    mockDb.projects.unshift(newProject);
+    notifyListeners('projects');
+    return newProject;
+};
+
+export const getProject = async (projectId: string): Promise<Project | null> => {
+    const project = mockDb.projects.find(p => p.id === projectId);
+    return project || null;
+};
+
+export const updateProject = async (projectId: string, updates: Partial<Project>) => {
+    const projectIndex = mockDb.projects.findIndex(p => p.id === projectId);
+    if (projectIndex > -1) {
+        mockDb.projects[projectIndex] = {
+            ...mockDb.projects[projectIndex],
+            ...updates,
+            updatedAt: new Date(),
+        };
+        notifyListeners('projects');
+        return mockDb.projects[projectIndex];
+    }
+    return null;
+};
+
+export const createChannel = async (projectId: string, channelData: Omit<Channel, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const project = mockDb.projects.find(p => p.id === projectId);
+    if (project) {
+        const newChannel: Channel = {
+            ...channelData,
+            id: uuidv4(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+        project.channels.unshift(newChannel);
+        project.lastActivity = new Date();
+        notifyListeners('projects');
+        return newChannel;
+    }
+    return null;
+};
+
+export const getChannelMessages = async (projectId: string, channelId: string): Promise<Chat[]> => {
+    const project = mockDb.projects.find(p => p.id === projectId);
+    if (project) {
+        const channel = project.channels.find(c => c.id === channelId);
+        if (channel) {
+            return channel.chats;
+        }
+    }
+    return [];
+};
+
+export const sendMessage = async (projectId: string, channelId: string, messageData: Omit<Chat, 'id' | 'timestamp'>) => {
+    return await addChatDoc(projectId, channelId, messageData);
+};
+
+export const markMessageAsApproved = async (projectId: string, channelId: string, chatId: string, approvedBy: string) => {
+    await updateChatDoc(projectId, channelId, chatId, {
+        approved: true,
+        approvedBy,
+        approvedAt: new Date(),
+    });
+};
