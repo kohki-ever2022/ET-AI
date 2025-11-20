@@ -37,9 +37,21 @@ interface ChatStatus {
 
 /**
  * Process a chat message through Claude API
+ *
+ * Scaling Configuration:
+ * - maxInstances: 30 (increased from 10 for 50-user support)
+ * - minInstances: 2 (prevents cold starts)
+ * - memory: 1GB
+ * - timeout: 300s (5 minutes)
  */
-export const processChat = functions.https.onCall(
-  async (data: ProcessChatRequest, context) => {
+export const processChat = functions
+  .runWith({
+    memory: '1GB',
+    timeoutSeconds: 300,
+    maxInstances: 30,
+    minInstances: 2,
+  })
+  .https.onCall(async (data: ProcessChatRequest, context) => {
     // Step 1: Authentication check
     if (!context.auth) {
       throw new functions.https.HttpsError(

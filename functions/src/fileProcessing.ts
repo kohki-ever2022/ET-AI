@@ -67,11 +67,19 @@ async function updateDocumentStatus(
 /**
  * Main file processing function
  * Triggered when a file is uploaded to Storage
+ *
+ * Scaling Configuration:
+ * - maxInstances: 15 (increased from 5 for 50-user support)
+ * - minInstances: 1 (prevents cold starts)
+ * - memory: 2GiB (increased for large PDF processing)
+ * - timeout: 540s (9 minutes)
  */
 export const processFileUpload = onObjectFinalized(
   {
-    timeoutSeconds: 540, // 9 minutes
+    timeoutSeconds: 540,
     memory: '2GiB',
+    maxInstances: 15,
+    minInstances: 1,
   },
   async (event) => {
     const object = event.data;

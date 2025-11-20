@@ -33,9 +33,22 @@ import { getDuplicateStats } from './services/deduplicationService';
 
 /**
  * Vector search HTTP endpoint
+ *
+ * Scaling Configuration:
+ * - maxInstances: 50 (increased from 10 for 50-user support)
+ * - minInstances: 2 (prevents cold starts)
+ * - memory: 512MB
+ * - timeout: 60s
  */
-export const vectorSearch = functions.https.onCall(async (data, context) => {
-  const { projectId, queryText, limit, threshold, category } = data;
+export const vectorSearch = functions
+  .runWith({
+    memory: '512MB',
+    timeoutSeconds: 60,
+    maxInstances: 50,
+    minInstances: 2,
+  })
+  .https.onCall(async (data, context) => {
+    const { projectId, queryText, limit, threshold, category } = data;
 
   if (!projectId || !queryText) {
     throw new functions.https.HttpsError(
