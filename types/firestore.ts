@@ -44,6 +44,60 @@ export interface Project {
   lastPatternAnalysisCount?: number;
   lastPatternAnalysisAt?: Timestamp;
   status: 'active' | 'archived';
+
+  // 時系列構造の管理
+  fiscalYearStartMonth: number; // 例: 4（4月始まり）
+  shareholderCommunicationFrequency: 'annual' | 'semi-annual' | 'quarterly';
+  currentFiscalYearId?: string; // 現在の年度ID
+  currentPeriodId?: string; // 現在の期ID
+}
+
+// ============================================================================
+// Fiscal Years Collection (Sub-collection of Projects)
+// ============================================================================
+
+export type FiscalYearStatus = 'planning' | 'in-progress' | 'completed';
+
+export interface FiscalYear {
+  id: string; // 例: "2024"
+  projectId: string;
+  startDate: Timestamp; // 例: 2024-04-01
+  endDate: Timestamp; // 例: 2025-03-31
+  label: string; // 例: "2024年度"
+  status: FiscalYearStatus;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ============================================================================
+// Periods Collection (Sub-collection of Fiscal Years)
+// ============================================================================
+
+export type PeriodType = 'quarterly' | 'half-yearly' | 'annual';
+export type PeriodStatus = 'not-started' | 'in-progress' | 'completed' | 'archived';
+
+export interface Period {
+  id: string; // 例: "q1", "q2", "q3", "q4", "h1", "h2", "full-year"
+  fiscalYearId: string;
+  projectId: string;
+  periodType: PeriodType;
+  periodNumber: number; // 1, 2, 3, 4（四半期の場合）、1, 2（半期の場合）、1（通期の場合）
+  startDate: Timestamp;
+  endDate: Timestamp;
+  label: string; // 例: "第1四半期", "上半期", "通期"
+
+  // IR資料の参照
+  integratedReportChannelId?: string; // この期の統合報告書チャンネル
+  shareholderCommunicationChannelIds: string[]; // この期の株主通信チャンネル
+
+  // 財務データ（オプション、将来的に追加）
+  revenue?: number;
+  operatingProfit?: number;
+  netIncome?: number;
+
+  status: PeriodStatus;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 // ============================================================================
@@ -73,6 +127,10 @@ export interface Channel {
   updatedAt: Timestamp;
   lastMessageAt?: Timestamp;
   messageCount: number;
+
+  // 時系列構造との関連付け
+  fiscalYearId?: string; // 年度ID（例: "2024"）
+  periodId?: string; // 期ID（例: "h1", "q1"）
 }
 
 // ============================================================================
@@ -143,6 +201,10 @@ export interface Knowledge {
   };
   createdAt: Timestamp;
   updatedAt: Timestamp;
+
+  // 時系列構造との関連付け（ナレッジ検索の優先順位付けに使用）
+  fiscalYearId?: string; // 年度ID（例: "2024"）
+  periodId?: string; // 期ID（例: "h1", "q1"）
 }
 
 // ============================================================================
@@ -308,6 +370,8 @@ export interface KnowledgeGroup {
 export const COLLECTIONS = {
   USERS: 'users',
   PROJECTS: 'projects',
+  FISCAL_YEARS: 'fiscalYears', // Sub-collection of projects
+  PERIODS: 'periods', // Sub-collection of fiscalYears
   CHANNELS: 'channels',
   CHATS: 'chats',
   KNOWLEDGE: 'knowledge',
