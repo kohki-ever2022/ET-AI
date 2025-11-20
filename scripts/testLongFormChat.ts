@@ -5,19 +5,24 @@
  *
  * 実行方法:
  * npx tsx scripts/testLongFormChat.ts
+ *
+ * 環境変数:
+ * - FIREBASE_PROJECT_ID: FirebaseプロジェクトID
+ * - FIREBASE_CLIENT_EMAIL: サービスアカウントのメール
+ * - FIREBASE_PRIVATE_KEY: サービスアカウントの秘密鍵
  */
 
 import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import {
-  saveLongFormChat,
-  loadLongFormChat,
-  streamLongFormChat,
-  getChunkStatistics,
-  deleteLongFormChat,
-  splitIntoChunks,
-  MAX_CHUNK_SIZE,
-} from '../services/longFormChatService';
+import { getFirestore, Timestamp, WriteBatch } from 'firebase-admin/firestore';
+import type { Chat, ChatChunk } from '../types/firestore';
+
+// 定数
+const MAX_CHUNK_SIZE = 5000;
+const LONG_FORM_THRESHOLD = 5000;
+const COLLECTIONS = {
+  CHATS: 'chats',
+  CHAT_CHUNKS: 'chunks',
+} as const;
 
 // Firebase Admin の初期化
 const app = initializeApp({
@@ -64,6 +69,226 @@ function generateDummyText(charCount: number): string {
 }
 
 // ============================================================================
+// ヘルパー関数（Firebase Admin用）
+// ============================================================================
+
+/**
+ * 文字列を指定サイズのチャンクに分割
+ */
+function splitIntoChunks(content: string, maxChunkSize: number = MAX_CHUNK_SIZE): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < content.length; i += maxChunkSize) {
+    chunks.push(content.substring(i, i + maxChunkSize));
+  }
+  return chunks;
+}
+
+/**
+ * コンテンツが長文かどうかを判定
+ */
+function isLongFormContent(content: string): boolean {
+  return content.length > LONG_FORM_THRESHOLD;
+}
+
+/**
+ * 長文チャットをFirestoreに保存
+ */
+async function saveLongFormChat(chatId: string, text: string): Promise<void> {
+  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
+  const isLongForm = isLongFormContent(text);
+
+  if (!isLongForm) {
+    await chatRef.set({
+      id: chatId,
+      projectId: 'test-project',
+      channelId: 'test-channel',
+      userId: 'test-user',
+      userMessage: 'テスト用メッセージ',
+      aiResponse: text,
+      timestamp: Timestamp.now(),
+      approved: false,
+      isLongForm: false,
+      totalCharCount: text.length,
+    });
+    return;
+  }
+
+  const chunks = splitIntoChunks(text, MAX_CHUNK_SIZE);
+  const totalChunks = chunks.length;
+  const chunksCollectionPath = `${COLLECTIONS.CHATS}/${chatId}/${COLLECTIONS.CHAT_CHUNKS}`;
+
+  const batch = db.batch();
+
+  batch.set(chatRef, {
+    id: chatId,
+    projectId: 'test-project',
+    channelId: 'test-channel',
+    userId: 'test-user',
+    userMessage: 'テスト用メッセージ',
+    aiResponse: '',
+    timestamp: Timestamp.now(),
+    approved: false,
+    isLongForm: true,
+    totalCharCount: text.length,
+    totalChunks,
+    chunksCollectionPath,
+  });
+
+  chunks.forEach((chunk, index) => {
+    const chunkRef = chatRef.collection(COLLECTIONS.CHAT_CHUNKS).doc(String(index));
+    batch.set(chunkRef, {
+      chatId,
+      chunkIndex: index,
+      totalChunks,
+      content: chunk,
+      charCount: chunk.length,
+      createdAt: Timestamp.now(),
+    });
+  });
+
+  await batch.commit();
+}
+
+/**
+ * 長文チャットをFirestoreから読み取り
+ */
+async function loadLongFormChat(chatId: string): Promise<{ fullContent: string; loadTime: number }> {
+  const startTime = performance.now();
+  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
+  const chatDoc = await chatRef.get();
+
+  if (!chatDoc.exists) {
+    throw new Error(`チャット ${chatId} が見つかりません`);
+  }
+
+  const chat = chatDoc.data() as Chat;
+
+  if (!chat.isLongForm) {
+    const loadTime = performance.now() - startTime;
+    return { fullContent: chat.aiResponse, loadTime };
+  }
+
+  const chunksSnapshot = await chatRef
+    .collection(COLLECTIONS.CHAT_CHUNKS)
+    .orderBy('chunkIndex', 'asc')
+    .get();
+
+  const chunks: string[] = [];
+  chunksSnapshot.docs.forEach((doc) => {
+    const chunkData = doc.data() as ChatChunk;
+    chunks.push(chunkData.content);
+  });
+
+  const fullContent = chunks.join('');
+  const loadTime = performance.now() - startTime;
+
+  return { fullContent, loadTime };
+}
+
+/**
+ * 長文チャットをストリーミング形式で読み取り
+ */
+async function* streamLongFormChat(chatId: string): AsyncGenerator<string, void, unknown> {
+  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
+  const chatDoc = await chatRef.get();
+
+  if (!chatDoc.exists) {
+    throw new Error(`チャット ${chatId} が見つかりません`);
+  }
+
+  const chat = chatDoc.data() as Chat;
+
+  if (!chat.isLongForm) {
+    yield chat.aiResponse;
+    return;
+  }
+
+  const chunksSnapshot = await chatRef
+    .collection(COLLECTIONS.CHAT_CHUNKS)
+    .orderBy('chunkIndex', 'asc')
+    .get();
+
+  for (const doc of chunksSnapshot.docs) {
+    const chunkData = doc.data() as ChatChunk;
+    yield chunkData.content;
+  }
+}
+
+/**
+ * チャンク統計情報を取得
+ */
+async function getChunkStatistics(chatId: string): Promise<{
+  totalChunks: number;
+  totalCharCount: number;
+  averageChunkSize: number;
+  chunkSizes: number[];
+}> {
+  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
+  const chatDoc = await chatRef.get();
+
+  if (!chatDoc.exists) {
+    throw new Error(`チャット ${chatId} が見つかりません`);
+  }
+
+  const chat = chatDoc.data() as Chat;
+
+  if (!chat.isLongForm) {
+    return {
+      totalChunks: 1,
+      totalCharCount: chat.aiResponse.length,
+      averageChunkSize: chat.aiResponse.length,
+      chunkSizes: [chat.aiResponse.length],
+    };
+  }
+
+  const chunksSnapshot = await chatRef.collection(COLLECTIONS.CHAT_CHUNKS).get();
+
+  const chunkSizes: number[] = [];
+  chunksSnapshot.docs.forEach((doc) => {
+    const chunkData = doc.data() as ChatChunk;
+    chunkSizes.push(chunkData.charCount);
+  });
+
+  const totalCharCount = chunkSizes.reduce((sum, size) => sum + size, 0);
+  const averageChunkSize = totalCharCount / chunkSizes.length;
+
+  return {
+    totalChunks: chunkSizes.length,
+    totalCharCount,
+    averageChunkSize,
+    chunkSizes,
+  };
+}
+
+/**
+ * 長文チャットを削除
+ */
+async function deleteLongFormChat(chatId: string): Promise<void> {
+  const chatRef = db.collection(COLLECTIONS.CHATS).doc(chatId);
+  const chatDoc = await chatRef.get();
+
+  if (!chatDoc.exists) {
+    return;
+  }
+
+  const chat = chatDoc.data() as Chat;
+
+  if (chat.isLongForm) {
+    const chunksSnapshot = await chatRef.collection(COLLECTIONS.CHAT_CHUNKS).get();
+    const batch = db.batch();
+
+    chunksSnapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    batch.delete(chatRef);
+    await batch.commit();
+  } else {
+    await chatRef.delete();
+  }
+}
+
+// ============================================================================
 // テスト関数
 // ============================================================================
 
@@ -107,21 +332,7 @@ async function testSave(chatId: string, text: string): Promise<void> {
 
   const startTime = performance.now();
 
-  await saveLongFormChat({
-    chatId,
-    projectId: 'test-project',
-    channelId: 'test-channel',
-    userId: 'test-user',
-    userMessage: 'テスト用の長文チャットを生成してください',
-    aiResponse: text,
-    approved: false,
-    metadata: {
-      inputTokens: 100,
-      outputTokens: Math.floor(text.length / 4), // 概算
-      cacheReadTokens: 0,
-      processingTime: 30000,
-    },
-  });
+  await saveLongFormChat(chatId, text);
 
   const endTime = performance.now();
 
@@ -141,13 +352,16 @@ async function testLoad(chatId: string): Promise<void> {
   console.log('========================================');
 
   const startTime = performance.now();
-  const { chat, fullContent, loadTime } = await loadLongFormChat(chatId);
+  const { fullContent, loadTime } = await loadLongFormChat(chatId);
   const endTime = performance.now();
+
+  // チャンク数を取得
+  const stats = await getChunkStatistics(chatId);
 
   console.log(`\n✅ 読み取り完了`);
   console.log(`  - chatId: ${chatId}`);
   console.log(`  - 文字数: ${fullContent.length.toLocaleString()}`);
-  console.log(`  - チャンク数: ${chat.totalChunks}`);
+  console.log(`  - チャンク数: ${stats.totalChunks}`);
   console.log(`  - 処理時間（サービス内部）: ${loadTime.toFixed(2)}ms`);
   console.log(`  - 処理時間（全体）: ${(endTime - startTime).toFixed(2)}ms`);
   console.log(`  - スループット: ${(fullContent.length / loadTime * 1000).toFixed(0)} 文字/秒`);
