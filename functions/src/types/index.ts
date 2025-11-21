@@ -95,6 +95,12 @@ export interface Knowledge {
   updatedAt?: Timestamp;
   duplicateGroupId?: string;
   isRepresentative?: boolean;
+
+  // Archive information
+  archived?: boolean;
+  archivedAt?: Timestamp;
+  archivedReason?: 'unused_90_days' | 'manual' | 'duplicate' | 'low_quality';
+  archivedByJobId?: string;
 }
 
 // ============================================================================
@@ -107,8 +113,13 @@ export interface KnowledgeGroup {
   representativeKnowledgeId: string;
   duplicateKnowledgeIds: string[];
   similarityScores: Record<string, number>;
+  averageSimilarity: number;
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
   detectionMethod: 'exact' | 'semantic' | 'fuzzy';
+  mergedCount: number;
+  totalUsageCount: number;
+  detectedByJobId?: string;
 }
 
 // ============================================================================
@@ -252,13 +263,40 @@ export interface ModificationRecord {
 // Learning Pattern Types
 // ============================================================================
 
-export type PatternType = 'vocabulary' | 'structure' | 'emphasis' | 'tone';
+export type PatternType = 'vocabulary' | 'structure' | 'emphasis' | 'tone' | 'length';
 
 export interface LearningPattern {
   id: string;
   projectId: string;
   patternType: PatternType;
   patternContent: string;
+
+  // Pattern-specific details
+  details?: {
+    // Vocabulary
+    tfIdfScores?: Record<string, number>;
+    wordFrequencies?: Record<string, number>;
+
+    // Structure
+    paragraphCount?: number;
+    hasLists?: boolean;
+    hasCodeBlocks?: boolean;
+    hasHeadings?: boolean;
+
+    // Emphasis
+    boldCount?: number;
+    italicCount?: number;
+    quoteCount?: number;
+
+    // Tone
+    formalityScore?: number;      // 0-100
+    politenesPatterns?: string[];
+
+    // Length
+    averageLength?: number;
+    stdDeviation?: number;
+    categoryLengths?: Record<string, number>;
+  };
 
   // Examples and sources
   examples: string[];
@@ -267,14 +305,19 @@ export interface LearningPattern {
   // Reliability metrics
   reliability: number;      // 50-100
   occurrenceCount: number;
+  confidence?: number;      // Confidence score
 
   // Validator info
   validatedBy: string;
   validatedAt: Timestamp;
+  autoExtracted?: boolean;  // Auto-extraction flag
 
   // Timestamps
   createdAt: Timestamp;
   updatedAt: Timestamp;
+
+  // Batch job reference
+  extractedByJobId?: string;
 }
 
 // ============================================================================
@@ -333,4 +376,79 @@ export interface ProcessingQueueItem {
   startedAt?: Timestamp;
   completedAt?: Timestamp;
   createdAt: Timestamp;
+}
+
+// ============================================================================
+// Batch Job Types
+// ============================================================================
+
+export type BatchJobType = 'weekly-pattern-extraction' | 'knowledge-maintenance' | 'archive-cleanup';
+export type BatchJobStatus = 'queued' | 'processing' | 'completed' | 'failed';
+
+export interface BatchJob {
+  id: string;
+  type: BatchJobType;
+  status: BatchJobStatus;
+
+  // Progress tracking
+  progress: {
+    current: number;
+    total: number;
+    percentage: number;
+    currentStep: string;
+  };
+
+  // Target period
+  targetPeriod: {
+    startDate: Timestamp;
+    endDate: Timestamp;
+  };
+
+  // Timestamps
+  createdAt: Timestamp;
+  startedAt?: Timestamp;
+  completedAt?: Timestamp;
+
+  // Results
+  result?: {
+    projectsProcessed: number;
+    chatsAnalyzed: number;
+    patternsExtracted: {
+      vocabulary: number;
+      structure: number;
+      emphasis: number;
+      tone: number;
+      length: number;
+    };
+    duplicatesFound: number;
+    duplicatesMerged: number;
+    knowledgeArchived: number;
+  };
+
+  // Errors
+  errors?: Array<{
+    step: string;
+    error: string;
+    timestamp: Timestamp;
+  }>;
+}
+
+// ============================================================================
+// Archive Types
+// ============================================================================
+
+export type ArchiveReason = 'unused_90_days' | 'manual' | 'duplicate' | 'low_quality';
+
+export interface ArchiveLog {
+  id: string;
+  knowledgeId: string;
+  projectId: string;
+  reason: ArchiveReason;
+  archivedAt: Timestamp;
+  archivedByJobId?: string;
+  metadata?: {
+    lastUsed?: Timestamp;
+    usageCount?: number;
+    reliability?: number;
+  };
 }
