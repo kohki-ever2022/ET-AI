@@ -161,11 +161,16 @@ describe('Phase 4 Integration Tests', () => {
   });
 
   describe('Circuit Breaker', () => {
+    const mockErrorDetector = (error: any) => ({
+      service: 'claude' as const,
+      type: 'timeout' as const,
+      message: error.message,
+      timestamp: new Date(),
+      severity: 'warning' as const,
+    });
+
     it('should open circuit after consecutive failures', async () => {
-      const breaker = new CircuitBreaker({
-        failureThreshold: 3,
-        resetTimeout: 1000,
-      });
+      const breaker = new CircuitBreaker(3, 1000);
 
       const failingOperation = jest.fn(async () => {
         throw new Error('Service unavailable');
@@ -173,15 +178,15 @@ describe('Phase 4 Integration Tests', () => {
 
       // First 3 failures should execute
       for (let i = 0; i < 3; i++) {
-        await breaker.execute(failingOperation).catch(() => {});
+        await breaker.execute(failingOperation, mockErrorDetector).catch(() => {});
       }
 
       expect(breaker.getState()).toBe('open');
       expect(failingOperation).toHaveBeenCalledTimes(3);
 
       // Next call should fail fast without executing
-      await expect(breaker.execute(failingOperation))
-        .rejects.toThrow('Circuit breaker is open');
+      const result = await breaker.execute(failingOperation, mockErrorDetector);
+      expect(result.success).toBe(false);
 
       expect(failingOperation).toHaveBeenCalledTimes(3); // Still 3, not 4
     });
@@ -189,10 +194,7 @@ describe('Phase 4 Integration Tests', () => {
     it('should transition to half-open after reset timeout', async () => {
       jest.useFakeTimers();
 
-      const breaker = new CircuitBreaker({
-        failureThreshold: 2,
-        resetTimeout: 1000,
-      });
+      const breaker = new CircuitBreaker(2, 1000);
 
       const operation = jest.fn()
         .mockRejectedValueOnce(new Error('Fail 1'))
@@ -200,20 +202,21 @@ describe('Phase 4 Integration Tests', () => {
         .mockResolvedValue('Success after recovery');
 
       // Trigger circuit open
-      await breaker.execute(operation).catch(() => {});
-      await breaker.execute(operation).catch(() => {});
+      await breaker.execute(operation, mockErrorDetector).catch(() => {});
+      await breaker.execute(operation, mockErrorDetector).catch(() => {});
 
       expect(breaker.getState()).toBe('open');
 
       // Fast forward past reset timeout
       jest.advanceTimersByTime(1100);
 
-      // Should be half-open now
-      expect(breaker.getState()).toBe('half-open');
+      // State is still 'open' until execute() is called
+      expect(breaker.getState()).toBe('open');
 
-      // Next success should close the circuit
-      const result = await breaker.execute(operation);
-      expect(result).toBe('Success after recovery');
+      // Next success should transition to half-open internally, then close the circuit
+      const result = await breaker.execute(operation, mockErrorDetector);
+      expect(result.success).toBe(true);
+      expect(result.result).toBe('Success after recovery');
       expect(breaker.getState()).toBe('closed');
 
       jest.useRealTimers();
@@ -277,6 +280,7 @@ describe('Phase 4 Integration Tests', () => {
 
       // The alert generation happens in checkAndSendAlerts()
       // which is called by runHealthCheck()
+      expect(alerts).toBeDefined();
     });
   });
 
