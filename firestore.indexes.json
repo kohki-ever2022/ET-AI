@@ -654,16 +654,5 @@
       ]
     }
   ],
-  "fieldOverrides": [
-    {
-      "collectionGroup": "cacheMetrics",
-      "fieldPath": "projectId",
-      "indexes": []
-    },
-    {
-      "collectionGroup": "cacheMetrics",
-      "fieldPath": "timestamp",
-      "indexes": []
-    }
-  ]
+  "fieldOverrides": []
 }
