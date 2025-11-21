@@ -55,11 +55,34 @@ jobs:
       - name: Create Firebase service account file
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/firebase-service-account.json
+          # Verify the service account file was created
+          if [ ! -f "$HOME/firebase-service-account.json" ]; then
+            echo "Error: Service account file not created"
+            exit 1
+          fi
+          # Check file is not empty
+          if [ ! -s "$HOME/firebase-service-account.json" ]; then
+            echo "Error: Service account file is empty"
+            exit 1
+          fi
+          echo "Service account file created successfully"
+
+      - name: Configure Firebase project
+        run: |
+          # Create .firebaserc file with project configuration
+          cat > .firebaserc << EOF
+          {
+            "projects": {
+              "default": "${{ secrets.STAGING_FIREBASE_PROJECT_ID }}"
+            }
+          }
+          EOF
+          echo "Firebase project configured: ${{ secrets.STAGING_FIREBASE_PROJECT_ID }}"
 
       - name: Deploy to Firebase Hosting (Staging)
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          firebase deploy --only hosting --project ${{ secrets.STAGING_FIREBASE_PROJECT_ID }} --non-interactive
+          firebase deploy --only hosting --non-interactive
 
       - name: Deploy Cloud Functions (Staging)
         run: |
@@ -67,7 +90,8 @@ jobs:
           cd functions
           npm ci
           npm run build
-          npx firebase deploy --only functions --project ${{ secrets.STAGING_FIREBASE_PROJECT_ID }} --non-interactive
+          cd ..
+          firebase deploy --only functions --non-interactive
 
   deploy-production:
     name: Deploy to Production
@@ -115,11 +139,34 @@ jobs:
       - name: Create Firebase service account file
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/firebase-service-account.json
+          # Verify the service account file was created
+          if [ ! -f "$HOME/firebase-service-account.json" ]; then
+            echo "Error: Service account file not created"
+            exit 1
+          fi
+          # Check file is not empty
+          if [ ! -s "$HOME/firebase-service-account.json" ]; then
+            echo "Error: Service account file is empty"
+            exit 1
+          fi
+          echo "Service account file created successfully"
+
+      - name: Configure Firebase project
+        run: |
+          # Create .firebaserc file with project configuration
+          cat > .firebaserc << EOF
+          {
+            "projects": {
+              "default": "${{ secrets.PROD_FIREBASE_PROJECT_ID }}"
+            }
+          }
+          EOF
+          echo "Firebase project configured: ${{ secrets.PROD_FIREBASE_PROJECT_ID }}"
 
       - name: Deploy to Firebase Hosting (Production)
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          firebase deploy --only hosting --project ${{ secrets.PROD_FIREBASE_PROJECT_ID }} --non-interactive
+          firebase deploy --only hosting --non-interactive
 
       - name: Deploy Cloud Functions (Production)
         run: |
@@ -127,12 +174,13 @@ jobs:
           cd functions
           npm ci
           npm run build
-          npx firebase deploy --only functions --project ${{ secrets.PROD_FIREBASE_PROJECT_ID }} --non-interactive
+          cd ..
+          firebase deploy --only functions --non-interactive
 
       - name: Deploy Firestore Rules and Indexes
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          npx firebase deploy --only firestore:rules,firestore:indexes,storage --project ${{ secrets.PROD_FIREBASE_PROJECT_ID }} --non-interactive
+          firebase deploy --only firestore:rules,firestore:indexes,storage --non-interactive
 
       - name: Notify deployment success
         if: success()
