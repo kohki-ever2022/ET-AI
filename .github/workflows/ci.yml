@@ -261,3 +261,55 @@ jobs:
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
           firebase deploy --only hosting --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} --non-interactive
+
+  deploy-firestore-indexes:
+    name: Deploy Firestore Indexes (Development)
+    runs-on: ubuntu-latest
+    needs: [lint-and-test]
+    if: startsWith(github.ref, 'refs/heads/claude/') && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Create Firebase service account file
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/firebase-service-account.json
+
+      - name: Deploy Firestore Indexes
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
+          firebase deploy --only firestore:indexes --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} --non-interactive
+        continue-on-error: false
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Firestore indexes deployed successfully to development environment"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const jobUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## ❌ Firestore Index Deployment Failed\n\nFailed to deploy Firestore indexes. Please check the [workflow run](${jobUrl}) for details.\n\n**Branch:** \`${context.ref}\`\n**Commit:** ${context.sha.substring(0, 7)}`
+              });
+            }

@@ -13,11 +13,16 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "validate:reduction": "ts-node scripts/validate-read-reduction.ts",
+    "deploy:indexes": "firebase deploy --only firestore:indexes",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:all": "firebase deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.69.0",
     "@google/genai": "^1.19.0",
+    "@tanstack/react-query": "^5.90.10",
     "firebase": "^12.6.0",
     "lodash": "^4.17.21",
     "mammoth": "^1.11.0",
@@ -38,7 +43,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
-    "@types/node": "^22.14.0",
+    "@types/node": "^22.19.1",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.22",
     "firebase-functions-test": "^3.4.1",
@@ -48,6 +53,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18",
     "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

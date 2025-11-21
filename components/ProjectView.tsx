@@ -3,6 +3,7 @@ import { TriasLogo, SidebarToggleIcon, FileIcon, PlusIcon, UploadIcon, ExportIco
 import { ChatWindow } from './ChatInterface';
 import { DocumentManager } from './Workspace';
 import { AdminDashboard } from './AdminDashboard';
+import PerformanceDashboard from './PerformanceDashboard';
 import { useAppContext } from '../context/AppContext';
 
 export const MainView: React.FC = () => {
@@ -18,9 +19,13 @@ export const MainView: React.FC = () => {
         }
         return { activeProject: undefined, activeChannel: undefined };
     }, [projects, activeProjectId, activeChannelId]);
-    
+
     if (activeProjectId === 'ADMIN_DASHBOARD') {
         return <AdminDashboard />;
+    }
+
+    if (activeProjectId === 'PERFORMANCE_DASHBOARD') {
+        return <PerformanceDashboard />;
     }
 
     const handleExportChat = () => {
