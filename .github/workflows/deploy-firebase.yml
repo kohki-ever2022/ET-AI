@@ -1,0 +1,83 @@
+name: Deploy Firestore Indexes and Cloud Functions
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'What to deploy'
+        required: true
+        type: choice
+        options:
+          - all
+          - firestore-indexes
+          - functions
+      project_id:
+        description: 'Firebase Project ID'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to Firebase
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Create Firebase service account file
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/firebase-service-account.json
+
+      - name: Deploy Firestore Indexes
+        if: github.event.inputs.target == 'firestore-indexes' || github.event.inputs.target == 'all'
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
+          firebase deploy --only firestore:indexes --project ${{ github.event.inputs.project_id }} --non-interactive
+
+      - name: Install Functions dependencies
+        if: github.event.inputs.target == 'functions' || github.event.inputs.target == 'all'
+        run: |
+          cd functions
+          npm ci
+
+      - name: Build Cloud Functions
+        if: github.event.inputs.target == 'functions' || github.event.inputs.target == 'all'
+        run: |
+          cd functions
+          npm run build
+
+      - name: Run Functions Tests
+        if: github.event.inputs.target == 'functions' || github.event.inputs.target == 'all'
+        run: |
+          cd functions
+          npm test
+
+      - name: Deploy Cloud Functions
+        if: github.event.inputs.target == 'functions' || github.event.inputs.target == 'all'
+        run: |
+          export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
+          cd functions
+          firebase deploy --only functions --project ${{ github.event.inputs.project_id }} --non-interactive
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ Deployment to Firebase successful!"
+          echo "Target: ${{ github.event.inputs.target }}"
+          echo "Project: ${{ github.event.inputs.project_id }}"
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "❌ Deployment to Firebase failed!"
+          echo "Please check the logs above for details."
