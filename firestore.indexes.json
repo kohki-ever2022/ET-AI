@@ -210,29 +210,9 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "cacheMetrics",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "projectId",
           "order": "ASCENDING"
         },
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "error_logs",
-      "queryScope": "COLLECTION",
-      "fields": [
         {
           "fieldPath": "timestamp",
           "order": "DESCENDING"
@@ -536,26 +516,6 @@
       ]
     },
     {
-      "collectionGroup": "rateLimitUsage",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "performanceMetrics",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "performanceMetrics",
       "queryScope": "COLLECTION",
       "fields": [
@@ -634,26 +594,6 @@
       ]
     },
     {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "lastActiveAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "createdAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "error_logs",
       "queryScope": "COLLECTION",
       "fields": [
@@ -686,29 +626,9 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "healthChecks",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "overallStatus",
           "order": "ASCENDING"
         },
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "alerts",
-      "queryScope": "COLLECTION",
-      "fields": [
         {
           "fieldPath": "timestamp",
           "order": "DESCENDING"
