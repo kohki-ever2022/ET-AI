@@ -350,15 +350,55 @@ export const validateReadReduction = functions
 // Health Check
 // ============================================================================
 
+export { scheduledHealthCheck } from './services/healthCheckService';
+
+import { runHealthCheck, getHealthDashboard } from './services/healthCheckService';
+
 /**
- * Health check function
+ * Get health status (callable function)
+ */
+export const getHealthStatus = functions.https.onCall(async (data, context) => {
+  try {
+    const result = await runHealthCheck();
+    return {
+      success: true,
+      ...result,
+    };
+  } catch (error) {
+    throw new functions.https.HttpsError(
+      'internal',
+      error instanceof Error ? error.message : 'Health check failed'
+    );
+  }
+});
+
+/**
+ * Get health dashboard (callable function)
+ */
+export const getHealthDashboardData = functions.https.onCall(async (data, context) => {
+  try {
+    const dashboard = await getHealthDashboard();
+    return {
+      success: true,
+      ...dashboard,
+    };
+  } catch (error) {
+    throw new functions.https.HttpsError(
+      'internal',
+      error instanceof Error ? error.message : 'Failed to get health dashboard'
+    );
+  }
+});
+
+/**
+ * Simple health check HTTP endpoint
  */
 export const healthCheck = functions.https.onRequest((req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'ET-AI Cloud Functions',
-    version: '3.0.0',
+    version: '4.0.0',
     features: [
       'File Processing (PDF/DOCX)',
       'Text Extraction',
@@ -376,6 +416,9 @@ export const healthCheck = functions.https.onRequest((req, res) => {
       'Phase 3: Archive System (90-day)',
       'Phase 3: Denormalization Service',
       'Phase 3: Read Reduction Validator',
+      'Phase 4: Fault Tolerance & Error Handling',
+      'Phase 4: Health Check System',
+      'Phase 4: Retry Strategies',
     ],
   });
 });
