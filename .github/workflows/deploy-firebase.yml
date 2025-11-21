@@ -15,6 +15,11 @@ on:
         description: 'Firebase Project ID'
         required: true
         type: string
+      branch:
+        description: 'Branch to deploy from'
+        required: false
+        type: string
+        default: 'claude/fiscal-year-hierarchy-013wwQHYKKpUFRxp1JhKWmSb'
 
 jobs:
   deploy:
@@ -24,6 +29,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -75,6 +82,7 @@ jobs:
           echo "✅ Deployment to Firebase successful!"
           echo "Target: ${{ github.event.inputs.target }}"
           echo "Project: ${{ github.event.inputs.project_id }}"
+          echo "Branch: ${{ github.event.inputs.branch || github.ref }}"
 
       - name: Notify failure
         if: failure()
