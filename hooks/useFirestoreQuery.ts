@@ -40,7 +40,7 @@ export function useProject(projectId: string | null) {
     },
     enabled: !!projectId,
     staleTime: 5 * 60 * 1000,     // 5 minutes
-    cacheTime: 30 * 60 * 1000,    // 30 minutes
+    gcTime: 30 * 60 * 1000,       // 30 minutes (garbage collection time)
   });
 }
 
@@ -64,7 +64,7 @@ export function useProjects(userId: string | null) {
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 }
 
@@ -88,7 +88,7 @@ export function useChannels(projectId: string | null) {
     },
     enabled: !!projectId,
     staleTime: 3 * 60 * 1000,     // 3 minutes (updates more frequently)
-    cacheTime: 15 * 60 * 1000,    // 15 minutes
+    gcTime: 15 * 60 * 1000,       // 15 minutes
   });
 }
 
@@ -112,7 +112,7 @@ export function useChats(channelId: string | null) {
     },
     enabled: !!channelId,
     staleTime: 1 * 60 * 1000,     // 1 minute (real-time feel)
-    cacheTime: 10 * 60 * 1000,    // 10 minutes
+    gcTime: 10 * 60 * 1000,       // 10 minutes
   });
 }
 
@@ -141,7 +141,7 @@ export function useKnowledge(projectId: string | null, category?: string) {
     },
     enabled: !!projectId,
     staleTime: 10 * 60 * 1000,    // 10 minutes (knowledge is stable)
-    cacheTime: 60 * 60 * 1000,    // 1 hour
+    gcTime: 60 * 60 * 1000,       // 1 hour
   });
 }
 
@@ -257,7 +257,7 @@ export function useChatsWithRelations(channelId: string | null) {
     },
     enabled: !!channelId,
     staleTime: 1 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 }
 
@@ -292,7 +292,7 @@ export function useChannelsWithProjects(projectId: string | null) {
     },
     enabled: !!projectId,
     staleTime: 3 * 60 * 1000,
-    cacheTime: 15 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 }
 
@@ -311,6 +311,6 @@ export function useBatchProjects(projectIds: string[]) {
     },
     enabled: projectIds.length > 0,
     staleTime: 5 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 }
