@@ -10,13 +10,13 @@
  * Runs periodic health checks and detects degradation/outages.
  */
 
-import { getFirestore, collection, addDoc, getDocs, query, limit, Timestamp } from 'firebase-admin/firestore';
-import { getStorage } from 'firebase-admin/storage';
+import * as admin from 'firebase-admin';
 import * as logger from 'firebase-functions/logger';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { ServiceType, getErrorRate } from './errorHandler';
 
-const db = getFirestore();
+const db = admin.firestore();
+const storage = admin.storage();
 
 // ============================================================================
 // Types
@@ -106,8 +106,8 @@ async function checkFirestore(): Promise<ServiceHealth> {
 
   try {
     // Simple read query to test Firestore
-    const testQuery = query(collection(db, 'projects'), limit(1));
-    await getDocs(testQuery);
+    const testQuery = db.collection('projects').limit(1);
+    await testQuery.get();
 
     const responseTime = Date.now() - startTime;
     const errorRate = await getErrorRate('firestore', 5);
@@ -195,7 +195,7 @@ async function checkFirebaseStorage(): Promise<ServiceHealth> {
   const startTime = Date.now();
 
   try {
-    const bucket = getStorage().bucket();
+    const bucket = storage.bucket();
 
     // Simple operation: list files (limit 1)
     await bucket.getFiles({ maxResults: 1 });
@@ -285,8 +285,8 @@ export async function runHealthCheck(): Promise<HealthCheckResult> {
  */
 async function saveHealthCheckResult(result: HealthCheckResult): Promise<void> {
   try {
-    await addDoc(collection(db, 'healthChecks'), {
-      timestamp: Timestamp.now(),
+    await db.collection('healthChecks').add({
+      timestamp: admin.firestore.Timestamp.now(),
       overallStatus: result.overallStatus,
       services: result.services.map((s) => ({
         service: s.service,
@@ -327,8 +327,8 @@ async function sendAlert(severity: 'warning' | 'emergency', service: ServiceHeal
   });
 
   // Save alert to Firestore
-  await addDoc(collection(db, 'alerts'), {
-    timestamp: Timestamp.now(),
+  await db.collection('alerts').add({
+    timestamp: admin.firestore.Timestamp.now(),
     severity,
     service: service.service,
     status: service.status,
@@ -365,12 +365,8 @@ export const scheduledHealthCheck = onSchedule(
 
       logger.info('Scheduled health check completed', {
         overallStatus: result.overallStatus,
+        services: result.services.map(s => ({ service: s.service, status: s.status })),
       });
-
-      return {
-        success: true,
-        result,
-      };
     } catch (error) {
       logger.error('Scheduled health check failed', { error });
       throw error;
@@ -385,16 +381,14 @@ export async function getRecentHealthStatus(minutes: number = 60): Promise<{
   services: Record<ServiceType, HealthStatus>;
   recentChecks: HealthCheckResult[];
 }> {
-  const cutoffTime = Timestamp.fromMillis(Date.now() - minutes * 60 * 1000);
+  const cutoffTime = admin.firestore.Timestamp.fromMillis(Date.now() - minutes * 60 * 1000);
 
-  const healthChecksRef = collection(db, 'healthChecks');
-  const q = query(
-    healthChecksRef,
-    // where('timestamp', '>', cutoffTime), // Uncomment when index is ready
-    limit(12) // Last hour if checks run every 5 minutes
-  );
+  const q = db.collection('healthChecks')
+    // .where('timestamp', '>', cutoffTime) // Uncomment when index is ready
+    .orderBy('timestamp', 'desc')
+    .limit(12); // Last hour if checks run every 5 minutes
 
-  const snapshot = await getDocs(q);
+  const snapshot = await q.get();
   const recentChecks: HealthCheckResult[] = snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
@@ -494,9 +488,10 @@ export async function getHealthDashboard(): Promise<{
   }
 
   // Get recent alerts
-  const alertsRef = collection(db, 'alerts');
-  const alertsQuery = query(alertsRef, limit(10));
-  const alertsSnapshot = await getDocs(alertsQuery);
+  const alertsQuery = db.collection('alerts')
+    .orderBy('timestamp', 'desc')
+    .limit(10);
+  const alertsSnapshot = await alertsQuery.get();
 
   const recentAlerts = alertsSnapshot.docs.map((doc) => ({
     id: doc.id,

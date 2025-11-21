@@ -62,7 +62,7 @@ export function updateRateLimits(config: Partial<RateLimitConfig>): void {
 /**
  * Upgrade to Tier 3 limits
  */
-export function upgradeTo Tier3(): void {
+export function upgradeToTier3(): void {
   updateRateLimits({
     rpm: 1_000,
     tpm: 80_000,

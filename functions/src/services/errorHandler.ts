@@ -11,10 +11,10 @@
  * - Firebase Storage
  */
 
-import { getFirestore, collection, addDoc, Timestamp } from 'firebase-admin/firestore';
+import * as admin from 'firebase-admin';
 import * as logger from 'firebase-functions/logger';
 
-const db = getFirestore();
+const db = admin.firestore();
 
 // ============================================================================
 // Error Types
@@ -64,7 +64,7 @@ export type ServiceError = ClaudeAPIError | VectorSearchError | EmbeddingError |
 
 export interface ErrorLog {
   id?: string;
-  timestamp: Timestamp;
+  timestamp: admin.firestore.Timestamp;
   service: ServiceType;
   errorType: string;
   severity: ErrorSeverity;
@@ -366,7 +366,7 @@ export async function logError(
 ): Promise<void> {
   try {
     const errorLog: ErrorLog = {
-      timestamp: Timestamp.now(),
+      timestamp: admin.firestore.Timestamp.now(),
       service: error.service,
       errorType: error.type,
       severity: error.severity,
@@ -381,7 +381,7 @@ export async function logError(
       userFacingMessage: getUserFacingMessage(error),
     };
 
-    await addDoc(collection(db, 'error_logs'), errorLog);
+    await db.collection('error_logs').add(errorLog);
 
     // Log to console based on severity
     switch (error.severity) {
@@ -492,9 +492,8 @@ export async function getErrorRate(
   minutes: number = 5
 ): Promise<number> {
   try {
-    const cutoffTime = Timestamp.fromMillis(Date.now() - minutes * 60 * 1000);
+    const cutoffTime = admin.firestore.Timestamp.fromMillis(Date.now() - minutes * 60 * 1000);
 
-    const errorLogsRef = collection(db, 'error_logs');
     const snapshot = await db
       .collection('error_logs')
       .where('service', '==', service)
