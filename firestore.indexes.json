@@ -206,20 +206,6 @@
       ]
     },
     {
-      "collectionGroup": "cacheMetrics",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "projectId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "error_logs",
       "queryScope": "COLLECTION",
       "fields": [
