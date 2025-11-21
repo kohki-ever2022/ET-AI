@@ -17,24 +17,11 @@
  * - Users can unarchive when needed
  */
 
-import {
-  getFirestore,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  query,
-  where,
-  Timestamp,
-  type Firestore,
-  limit,
-  orderBy,
-} from 'firebase-admin/firestore';
+import * as admin from 'firebase-admin';
 import * as logger from 'firebase-functions/logger';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 
-const db = getFirestore();
+const db = admin.firestore();
 
 // Archive threshold: 90 days
 const ARCHIVE_THRESHOLD_DAYS = 90;
@@ -57,7 +44,7 @@ export async function archiveOldChats(
   const archivedChatIds: string[] = [];
 
   try {
-    const archiveThreshold = Timestamp.fromMillis(Date.now() - ARCHIVE_THRESHOLD_MS);
+    const archiveThreshold = admin.firestore.Timestamp.fromMillis(Date.now() - ARCHIVE_THRESHOLD_MS);
 
     logger.info('Starting chat archive process', {
       archiveThreshold: archiveThreshold.toDate(),
@@ -65,15 +52,13 @@ export async function archiveOldChats(
     });
 
     // Query for non-archived chats older than threshold
-    const chatsRef = collection(db, 'chats');
-    const q = query(
-      chatsRef,
-      where('archived', '==', false),
-      where('createdAt', '<', archiveThreshold),
-      orderBy('createdAt', 'asc')
-    );
+    const chatsRef = db.collection('chats');
+    const q = chatsRef
+      .where('archived', '==', false)
+      .where('createdAt', '<', archiveThreshold)
+      .orderBy('createdAt', 'asc');
 
-    const snapshot = await getDocs(q);
+    const snapshot = await q.get();
     scanned = snapshot.size;
 
     if (snapshot.empty) {
@@ -89,11 +74,11 @@ export async function archiveOldChats(
       const batch = db.batch();
       const chunk = docs.slice(i, i + batchSize);
 
-      chunk.forEach((docSnapshot) => {
+      chunk.forEach((docSnapshot: admin.firestore.QueryDocumentSnapshot) => {
         if (!dryRun) {
           batch.update(docSnapshot.ref, {
             archived: true,
-            archivedAt: Timestamp.now(),
+            archivedAt: admin.firestore.Timestamp.now(),
             archivedReason: 'auto_archive_90_days',
           });
         }
@@ -147,7 +132,7 @@ export async function archiveOldChannels(
   const archivedChannelIds: string[] = [];
 
   try {
-    const archiveThreshold = Timestamp.fromMillis(Date.now() - ARCHIVE_THRESHOLD_MS);
+    const archiveThreshold = admin.firestore.Timestamp.fromMillis(Date.now() - ARCHIVE_THRESHOLD_MS);
 
     logger.info('Starting channel archive process', {
       archiveThreshold: archiveThreshold.toDate(),
@@ -155,9 +140,9 @@ export async function archiveOldChannels(
     });
 
     // Get all non-archived channels
-    const channelsRef = collection(db, 'channels');
-    const q = query(channelsRef, where('archived', '==', false));
-    const snapshot = await getDocs(q);
+    const channelsRef = db.collection('channels');
+    const q = channelsRef.where('archived', '==', false);
+    const snapshot = await q.get();
 
     scanned = snapshot.size;
 
@@ -179,22 +164,20 @@ export async function archiveOldChannels(
         const channelId = channelDoc.id;
 
         // Check for recent chats in this channel
-        const chatsRef = collection(db, 'chats');
-        const recentChatsQuery = query(
-          chatsRef,
-          where('channelId', '==', channelId),
-          where('createdAt', '>', archiveThreshold),
-          limit(1)
-        );
+        const chatsRef = db.collection('chats');
+        const recentChatsQuery = chatsRef
+          .where('channelId', '==', channelId)
+          .where('createdAt', '>', archiveThreshold)
+          .limit(1);
 
-        const recentChats = await getDocs(recentChatsQuery);
+        const recentChats = await recentChatsQuery.get();
 
         // Archive if no recent chats
         if (recentChats.empty) {
           if (!dryRun) {
             batch.update(channelDoc.ref, {
               archived: true,
-              archivedAt: Timestamp.now(),
+              archivedAt: admin.firestore.Timestamp.now(),
               archivedReason: 'auto_archive_90_days_inactive',
             });
           }
@@ -239,18 +222,18 @@ export async function archiveOldChannels(
  */
 export async function unarchiveChat(chatId: string): Promise<void> {
   try {
-    const chatRef = doc(db, 'chats', chatId);
-    const chatDoc = await getDoc(chatRef);
+    const chatRef = db.collection('chats').doc(chatId);
+    const chatDoc = await chatRef.get();
 
-    if (!chatDoc.exists()) {
+    if (!chatDoc.exists) {
       throw new Error(`Chat ${chatId} not found`);
     }
 
-    await updateDoc(chatRef, {
+    await chatRef.update({
       archived: false,
       archivedAt: null,
       archivedReason: null,
-      unarchivedAt: Timestamp.now(),
+      unarchivedAt: admin.firestore.Timestamp.now(),
     });
 
     logger.info('Chat unarchived', { chatId });
@@ -265,18 +248,18 @@ export async function unarchiveChat(chatId: string): Promise<void> {
  */
 export async function unarchiveChannel(channelId: string): Promise<void> {
   try {
-    const channelRef = doc(db, 'channels', channelId);
-    const channelDoc = await getDoc(channelRef);
+    const channelRef = db.collection('channels').doc(channelId);
+    const channelDoc = await channelRef.get();
 
-    if (!channelDoc.exists()) {
+    if (!channelDoc.exists) {
       throw new Error(`Channel ${channelId} not found`);
     }
 
-    await updateDoc(channelRef, {
+    await channelRef.update({
       archived: false,
       archivedAt: null,
       archivedReason: null,
-      unarchivedAt: Timestamp.now(),
+      unarchivedAt: admin.firestore.Timestamp.now(),
     });
 
     logger.info('Channel unarchived', { channelId });
@@ -303,20 +286,20 @@ export async function getArchiveStatistics(): Promise<{
 }> {
   try {
     // Count chats
-    const chatsRef = collection(db, 'chats');
-    const allChatsSnapshot = await getDocs(chatsRef);
-    const archivedChatsQuery = query(chatsRef, where('archived', '==', true));
-    const archivedChatsSnapshot = await getDocs(archivedChatsQuery);
+    const chatsRef = db.collection('chats');
+    const allChatsSnapshot = await chatsRef.get();
+    const archivedChatsQuery = chatsRef.where('archived', '==', true);
+    const archivedChatsSnapshot = await archivedChatsQuery.get();
 
     const totalChats = allChatsSnapshot.size;
     const archivedChats = archivedChatsSnapshot.size;
     const activeChats = totalChats - archivedChats;
 
     // Count channels
-    const channelsRef = collection(db, 'channels');
-    const allChannelsSnapshot = await getDocs(channelsRef);
-    const archivedChannelsQuery = query(channelsRef, where('archived', '==', true));
-    const archivedChannelsSnapshot = await getDocs(archivedChannelsQuery);
+    const channelsRef = db.collection('channels');
+    const allChannelsSnapshot = await channelsRef.get();
+    const archivedChannelsQuery = channelsRef.where('archived', '==', true);
+    const archivedChannelsSnapshot = await archivedChannelsQuery.get();
 
     const totalChannels = allChannelsSnapshot.size;
     const archivedChannels = archivedChannelsSnapshot.size;
@@ -369,25 +352,19 @@ export const scheduledArchiveJob = onSchedule(
 
       // Log to Firestore for monitoring
       await db.collection('archiveJobs').add({
-        timestamp: Timestamp.now(),
+        timestamp: admin.firestore.Timestamp.now(),
         chatResult,
         channelResult,
         stats,
         status: 'completed',
-      });
-
-      return {
         success: true,
-        chatResult,
-        channelResult,
-        stats,
-      };
+      });
     } catch (error) {
       logger.error('Scheduled archive job failed', { error });
 
       // Log error to Firestore
       await db.collection('archiveJobs').add({
-        timestamp: Timestamp.now(),
+        timestamp: admin.firestore.Timestamp.now(),
         status: 'failed',
         error: String(error),
       });
@@ -459,15 +436,15 @@ export async function initializeArchiveFields(): Promise<{
 
   try {
     // Initialize chats
-    const chatsRef = collection(db, 'chats');
-    const chatsSnapshot = await getDocs(chatsRef);
+    const chatsRef = db.collection('chats');
+    const chatsSnapshot = await chatsRef.get();
 
     const chatBatchSize = 500;
     for (let i = 0; i < chatsSnapshot.docs.length; i += chatBatchSize) {
       const batch = db.batch();
       const chunk = chatsSnapshot.docs.slice(i, i + chatBatchSize);
 
-      chunk.forEach((docSnapshot) => {
+      chunk.forEach((docSnapshot: admin.firestore.QueryDocumentSnapshot) => {
         const data = docSnapshot.data();
         if (data.archived === undefined) {
           batch.update(docSnapshot.ref, {
@@ -483,15 +460,15 @@ export async function initializeArchiveFields(): Promise<{
     }
 
     // Initialize channels
-    const channelsRef = collection(db, 'channels');
-    const channelsSnapshot = await getDocs(channelsRef);
+    const channelsRef = db.collection('channels');
+    const channelsSnapshot = await channelsRef.get();
 
     const channelBatchSize = 500;
     for (let i = 0; i < channelsSnapshot.docs.length; i += channelBatchSize) {
       const batch = db.batch();
       const chunk = channelsSnapshot.docs.slice(i, i + channelBatchSize);
 
-      chunk.forEach((docSnapshot) => {
+      chunk.forEach((docSnapshot: admin.firestore.QueryDocumentSnapshot) => {
         const data = docSnapshot.data();
         if (data.archived === undefined) {
           batch.update(docSnapshot.ref, {

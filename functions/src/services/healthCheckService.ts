@@ -381,7 +381,6 @@ export async function getRecentHealthStatus(minutes: number = 60): Promise<{
   services: Record<ServiceType, HealthStatus>;
   recentChecks: HealthCheckResult[];
 }> {
-  const cutoffTime = admin.firestore.Timestamp.fromMillis(Date.now() - minutes * 60 * 1000);
 
   const q = db.collection('healthChecks')
     // .where('timestamp', '>', cutoffTime) // Uncomment when index is ready

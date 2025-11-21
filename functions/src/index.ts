@@ -255,7 +255,6 @@ export const onUserUpdate = functions.firestore
   .document('users/{userId}')
   .onUpdate(async (change, context) => {
     const { userId } = context.params;
-    const before = change.before.data();
     const after = change.after.data();
 
     try {
@@ -276,7 +275,6 @@ export const onProjectUpdate = functions.firestore
   .document('projects/{projectId}')
   .onUpdate(async (change, context) => {
     const { projectId } = context.params;
-    const before = change.before.data();
     const after = change.after.data();
 
     try {
@@ -296,7 +294,6 @@ export const onChannelUpdate = functions.firestore
   .document('channels/{channelId}')
   .onUpdate(async (change, context) => {
     const { channelId } = context.params;
-    const before = change.before.data();
     const after = change.after.data();
 
     try {

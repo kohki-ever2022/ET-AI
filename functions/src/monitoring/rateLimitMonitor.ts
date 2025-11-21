@@ -274,6 +274,4 @@ export const generateDailyRateLimitReport = onSchedule('every 24 hours', async (
   });
 
   console.log('[Rate Limit Monitor] Daily report generated:', JSON.stringify(report, null, 2));
-
-  return report;
 });

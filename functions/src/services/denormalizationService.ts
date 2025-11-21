@@ -14,22 +14,10 @@
  * - Slightly increased storage (negligible for our scale)
  */
 
-import {
-  getFirestore,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  query,
-  where,
-  Timestamp,
-  type Firestore,
-  type DocumentReference,
-} from 'firebase-admin/firestore';
+import * as admin from 'firebase-admin';
 import * as logger from 'firebase-functions/logger';
 
-const db = getFirestore();
+const db = admin.firestore();
 
 /**
  * Denormalized user data stored in chats, channels, etc.
@@ -39,7 +27,7 @@ export interface DenormalizedUser {
   userName: string;
   userEmail: string;
   userPhotoURL?: string;
-  updatedAt: Timestamp;
+  updatedAt: admin.firestore.Timestamp;
 }
 
 /**
@@ -49,7 +37,7 @@ export interface DenormalizedProject {
   projectId: string;
   projectName: string;
   projectDescription?: string;
-  updatedAt: Timestamp;
+  updatedAt: admin.firestore.Timestamp;
 }
 
 /**
@@ -59,7 +47,7 @@ export interface DenormalizedChannel {
   channelId: string;
   channelName: string;
   channelDescription?: string;
-  updatedAt: Timestamp;
+  updatedAt: admin.firestore.Timestamp;
 }
 
 /**
@@ -85,7 +73,7 @@ export async function propagateUserUpdate(
 
   try {
     const denormalizedUser: Partial<DenormalizedUser> = {
-      updatedAt: Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now(),
     };
 
     if (userData.name !== undefined) {
@@ -160,7 +148,7 @@ export async function propagateProjectUpdate(
 
   try {
     const denormalizedProject: Partial<DenormalizedProject> = {
-      updatedAt: Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now(),
     };
 
     if (projectData.name !== undefined) {
@@ -244,7 +232,7 @@ export async function propagateChannelUpdate(
 
   try {
     const denormalizedChannel: Partial<DenormalizedChannel> = {
-      updatedAt: Timestamp.now(),
+      updatedAt: admin.firestore.Timestamp.now(),
     };
 
     if (channelData.name !== undefined) {
@@ -292,9 +280,9 @@ async function updateDenormalizedDataInCollection(
   updateData: Record<string, any>
 ): Promise<number> {
   try {
-    const collectionRef = collection(db, collectionName);
-    const q = query(collectionRef, where(fieldPath, '==', fieldValue));
-    const snapshot = await getDocs(q);
+    const collectionRef = db.collection(collectionName);
+    const q = collectionRef.where(fieldPath, '==', fieldValue);
+    const snapshot = await q.get();
 
     if (snapshot.empty) {
       return 0;
@@ -309,7 +297,7 @@ async function updateDenormalizedDataInCollection(
       const batch = db.batch();
       const chunk = docs.slice(i, i + batchSize);
 
-      chunk.forEach((docSnapshot) => {
+      chunk.forEach((docSnapshot: admin.firestore.QueryDocumentSnapshot) => {
         batch.update(docSnapshot.ref, updateData);
       });
 
@@ -362,43 +350,43 @@ export async function initializeDenormalizedData(
   try {
     // Fetch user data if userId is provided
     if (data.userId) {
-      const userDoc = await getDoc(doc(db, 'users', data.userId));
-      if (userDoc.exists()) {
+      const userDoc = await db.collection('users').doc(data.userId).get();
+      if (userDoc.exists) {
         const userData = userDoc.data();
         result.denormalizedUser = {
           userId: data.userId,
-          userName: userData.name || '',
-          userEmail: userData.email || '',
-          userPhotoURL: userData.photoURL,
-          updatedAt: Timestamp.now(),
+          userName: userData?.name || '',
+          userEmail: userData?.email || '',
+          userPhotoURL: userData?.photoURL,
+          updatedAt: admin.firestore.Timestamp.now(),
         };
       }
     }
 
     // Fetch project data if projectId is provided
     if (data.projectId) {
-      const projectDoc = await getDoc(doc(db, 'projects', data.projectId));
-      if (projectDoc.exists()) {
+      const projectDoc = await db.collection('projects').doc(data.projectId).get();
+      if (projectDoc.exists) {
         const projectData = projectDoc.data();
         result.denormalizedProject = {
           projectId: data.projectId,
-          projectName: projectData.name || '',
-          projectDescription: projectData.description,
-          updatedAt: Timestamp.now(),
+          projectName: projectData?.name || '',
+          projectDescription: projectData?.description,
+          updatedAt: admin.firestore.Timestamp.now(),
         };
       }
     }
 
     // Fetch channel data if channelId is provided
     if (data.channelId) {
-      const channelDoc = await getDoc(doc(db, 'channels', data.channelId));
-      if (channelDoc.exists()) {
+      const channelDoc = await db.collection('channels').doc(data.channelId).get();
+      if (channelDoc.exists) {
         const channelData = channelDoc.data();
         result.denormalizedChannel = {
           channelId: data.channelId,
-          channelName: channelData.name || '',
-          channelDescription: channelData.description,
-          updatedAt: Timestamp.now(),
+          channelName: channelData?.name || '',
+          channelDescription: channelData?.description,
+          updatedAt: admin.firestore.Timestamp.now(),
         };
       }
     }
@@ -510,8 +498,8 @@ export async function batchDenormalizeExistingData(
   let updated = 0;
 
   try {
-    const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(collectionRef);
+    const collectionRef = db.collection(collectionName);
+    const snapshot = await collectionRef.get();
 
     logger.info(`Starting batch denormalization for ${collectionName}`, {
       totalDocs: snapshot.size,
