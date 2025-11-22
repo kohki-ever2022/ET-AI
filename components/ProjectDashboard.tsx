@@ -151,6 +151,14 @@ export const Sidebar: React.FC = () => {
                     >
                         <span className="ml-apple-md font-sf-semibold text-apple-body">パフォーマンス</span>
                     </button>
+                    {state.user?.customClaims?.role === 'admin' && (
+                        <button
+                            onClick={() => dispatch({ type: 'SELECT_BATCH_JOB_MONITOR' })}
+                            className="w-full flex items-center p-apple-sm rounded-apple-button-lg transition-colors duration-200 motion-reduce:transition-none text-apple-label-light dark:text-apple-label-dark hover:bg-apple-fill-secondary-light dark:hover:bg-apple-fill-secondary-dark"
+                        >
+                            <span className="ml-apple-md font-sf-semibold text-apple-body">バッチジョブ</span>
+                        </button>
+                    )}
                     <button
                         onClick={() => dispatch({ type: 'LOGOUT' })}
                         className="w-full flex items-center p-apple-sm rounded-apple-button-lg transition-colors duration-200 motion-reduce:transition-none text-apple-red-light dark:text-apple-red-dark hover:bg-apple-red-light/20 dark:hover:bg-apple-red-dark/20"

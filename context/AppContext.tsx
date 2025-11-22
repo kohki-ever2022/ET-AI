@@ -40,6 +40,7 @@ export type AppAction =
   | { type: 'LOGOUT' }
   | { type: 'SELECT_ADMIN_DASHBOARD' }
   | { type: 'SELECT_PERFORMANCE_DASHBOARD' }
+  | { type: 'SELECT_BATCH_JOB_MONITOR' }
   | { type: 'CREATE_PROJECT'; payload: { name: string } }
   | { type: 'SELECT_PROJECT'; payload: { projectId: string } }
   | { type: 'TOGGLE_EXPAND_PROJECT'; payload: { projectId: string } }
@@ -93,6 +94,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         return { ...state, activeProjectId: 'ADMIN_DASHBOARD', activeChannelId: null };
     case 'SELECT_PERFORMANCE_DASHBOARD':
         return { ...state, activeProjectId: 'PERFORMANCE_DASHBOARD', activeChannelId: null };
+    case 'SELECT_BATCH_JOB_MONITOR':
+        return { ...state, activeProjectId: 'BATCH_JOB_MONITOR', activeChannelId: null };
     case 'CREATE_PROJECT': {
       const newProject: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> = {
         companyName: action.payload.name,

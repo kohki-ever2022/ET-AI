@@ -4,6 +4,7 @@ import { ChatWindow } from './ChatInterface';
 import { DocumentManager } from './Workspace';
 import { AdminDashboard } from './AdminDashboard';
 import PerformanceDashboard from './PerformanceDashboard';
+import { BatchJobMonitor } from './BatchJobMonitor';
 import { useAppContext } from '../context/AppContext';
 
 export const MainView: React.FC = () => {
@@ -26,6 +27,10 @@ export const MainView: React.FC = () => {
 
     if (activeProjectId === 'PERFORMANCE_DASHBOARD') {
         return <PerformanceDashboard />;
+    }
+
+    if (activeProjectId === 'BATCH_JOB_MONITOR') {
+        return <BatchJobMonitor />;
     }
 
     const handleExportChat = () => {
