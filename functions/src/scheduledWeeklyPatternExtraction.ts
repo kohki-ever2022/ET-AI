@@ -25,6 +25,7 @@ import {
 } from './types';
 import { generateEmbedding } from './services/embeddingService';
 import { searchSimilarKnowledge } from './services/vectorSearchService';
+import { sendNotification } from './services/notificationService';
 
 const BATCH_SIZE = 50;
 const SIMILARITY_THRESHOLD = 0.95;
@@ -156,20 +157,23 @@ export const weeklyPatternExtraction = functions
     } catch (error) {
       console.error(`[Job ${jobId}] Error:`, error);
 
-      // Log error
-      await logJobError(jobRef, 'main', error);
+      try {
+        // エラーログとステータス更新を確実に完了させる
+        await logJobError(jobRef, 'main', error);
+        await failJob(jobRef, error);
 
-      // Mark job as failed
-      await failJob(jobRef, error);
+        // 通知を送信（失敗しても続行）
+        await sendNotification({
+          type: 'error',
+          jobId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } catch (cleanupError) {
+        console.error(`[Job ${jobId}] Failed to cleanup after error:`, cleanupError);
+      }
 
-      // Send error notification
-      await sendNotification({
-        type: 'error',
-        jobId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      throw error;
+      // 例外は再スローしない（Cloud Functionsが失敗としてログに記録）
+      return null;
     }
   });
 
@@ -951,11 +955,11 @@ async function archiveUnusedKnowledge(
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - ARCHIVE_DAYS);
 
-    // Query 1: Never used knowledge
+    // Query 1: Never used knowledge (check usageCount instead of lastUsed null)
     const neverUsedSnapshot = await db
       .collection(COLLECTIONS.KNOWLEDGE)
       .where('archived', '==', false)
-      .where('lastUsed', '==', null)
+      .where('usageCount', '==', 0)
       .limit(100)
       .get();
 
@@ -1098,28 +1102,4 @@ function calculateConfidence(featureCount: number, sampleSize: number): number {
   return Math.min(100, Math.round(base + sample));
 }
 
-/**
- * Send notification (placeholder for email/Slack integration)
- */
-async function sendNotification(params: {
-  type: 'success' | 'error' | 'warning';
-  jobId: string;
-  result?: any;
-  error?: string;
-  duration?: number;
-}): Promise<void> {
-  // Log notification (in production, integrate with email/Slack)
-  const message = params.type === 'success'
-    ? `✅ Weekly Pattern Extraction completed successfully\nJob ID: ${params.jobId}\nDuration: ${params.duration}ms\nResults: ${JSON.stringify(params.result, null, 2)}`
-    : `❌ Weekly Pattern Extraction failed\nJob ID: ${params.jobId}\nError: ${params.error}`;
-
-  console.log('NOTIFICATION:', message);
-
-  // TODO: Integrate with SendGrid, SES, or Slack
-  // Example:
-  // await sendEmail({
-  //   to: 'admin@company.com',
-  //   subject: `Weekly Pattern Extraction - ${params.type}`,
-  //   body: message,
-  // });
-}
+// sendNotification is now imported from ./services/notificationService

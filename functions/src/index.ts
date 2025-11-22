@@ -119,6 +119,7 @@ export {
 // ============================================================================
 
 export { weeklyPatternExtraction } from './scheduledWeeklyPatternExtraction';
+export { triggerBatchJob } from './triggerBatchJob';
 
 // ============================================================================
 // Chat Processing Functions

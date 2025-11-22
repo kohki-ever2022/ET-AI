@@ -746,6 +746,20 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "approved",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "approvedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "chats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
           "fieldPath": "projectId",
           "order": "ASCENDING"
         },

@@ -112,6 +112,7 @@ export const onChatApproved = functions.firestore
         category,
         reliability,
         usageCount: 1,
+        lastUsed: admin.firestore.FieldValue.serverTimestamp(),
         version: 1,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
