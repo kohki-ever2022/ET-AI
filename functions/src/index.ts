@@ -115,6 +115,13 @@ export {
 } from './scheduledCostMonitoring';
 
 // ============================================================================
+// Batch Processing Functions
+// ============================================================================
+
+export { weeklyPatternExtraction } from './scheduledWeeklyPatternExtraction';
+export { triggerBatchJob } from './triggerBatchJob';
+
+// ============================================================================
 // Chat Processing Functions
 // ============================================================================
 
@@ -416,6 +423,9 @@ export const healthCheck = functions.https.onRequest((req, res) => {
       'Phase 4: Fault Tolerance & Error Handling',
       'Phase 4: Health Check System',
       'Phase 4: Retry Strategies',
+      'Phase 5: Weekly Pattern Extraction Batch',
+      'Phase 5: Knowledge Maintenance & Deduplication',
+      'Phase 5: Auto Archive (90-day unused)',
     ],
   });
 });

@@ -296,5 +296,41 @@ service cloud.firestore {
       // Only admins can delete groups
       allow delete: if isAdmin();
     }
+
+    // ============================================================================
+    // Batch Jobs Collection
+    // ============================================================================
+
+    match /batchJobs/{jobId} {
+      // Only admins can read batch jobs
+      allow read: if isAdmin();
+
+      // System can create batch jobs (via Cloud Functions)
+      allow create: if isTriasEmail();
+
+      // System can update batch job progress
+      allow update: if isTriasEmail();
+
+      // Only admins can delete batch jobs
+      allow delete: if isAdmin();
+    }
+
+    // ============================================================================
+    // Archive Logs Collection
+    // ============================================================================
+
+    match /archiveLogs/{logId} {
+      // Project members can read archive logs for their projects
+      allow read: if isProjectMember(resource.data.projectId);
+
+      // System can create archive logs (via Cloud Functions)
+      allow create: if isTriasEmail();
+
+      // No updates allowed
+      allow update: if false;
+
+      // Only admins can delete archive logs
+      allow delete: if isAdmin();
+    }
   }
 }

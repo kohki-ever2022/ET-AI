@@ -43,6 +43,29 @@ jobs:
       - name: Create Firebase service account file
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/firebase-service-account.json
+          # Verify the service account file was created
+          if [ ! -f "$HOME/firebase-service-account.json" ]; then
+            echo "Error: Service account file not created"
+            exit 1
+          fi
+          # Check file is not empty
+          if [ ! -s "$HOME/firebase-service-account.json" ]; then
+            echo "Error: Service account file is empty"
+            exit 1
+          fi
+          echo "Service account file created successfully"
+
+      - name: Configure Firebase project
+        run: |
+          # Create .firebaserc file with project configuration
+          cat > .firebaserc << EOF
+          {
+            "projects": {
+              "default": "${{ secrets.VITE_FIREBASE_PROJECT_ID }}"
+            }
+          }
+          EOF
+          echo "Firebase project configured: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}"
 
       - name: Deploy to Firebase Hosting Preview Channel
         id: deploy
@@ -51,7 +74,6 @@ jobs:
 
           # Deploy to preview channel and capture full output
           DEPLOY_OUTPUT=$(firebase hosting:channel:deploy pr-${{ github.event.pull_request.number }} \
-            --project ${{ secrets.VITE_FIREBASE_PROJECT_ID }} \
             --json 2>&1)
 
           echo "Firebase CLI Output:"

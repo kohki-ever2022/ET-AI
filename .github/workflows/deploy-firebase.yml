@@ -44,12 +44,35 @@ jobs:
       - name: Create Firebase service account file
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > $HOME/firebase-service-account.json
+          # Verify the service account file was created
+          if [ ! -f "$HOME/firebase-service-account.json" ]; then
+            echo "Error: Service account file not created"
+            exit 1
+          fi
+          # Check file is not empty
+          if [ ! -s "$HOME/firebase-service-account.json" ]; then
+            echo "Error: Service account file is empty"
+            exit 1
+          fi
+          echo "Service account file created successfully"
+
+      - name: Configure Firebase project
+        run: |
+          # Create .firebaserc file with project configuration
+          cat > .firebaserc << EOF
+          {
+            "projects": {
+              "default": "${{ github.event.inputs.project_id }}"
+            }
+          }
+          EOF
+          echo "Firebase project configured: ${{ github.event.inputs.project_id }}"
 
       - name: Deploy Firestore Indexes
         if: github.event.inputs.target == 'firestore-indexes' || github.event.inputs.target == 'all'
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          firebase deploy --only firestore:indexes --project ${{ github.event.inputs.project_id }} --non-interactive
+          firebase deploy --only firestore:indexes --non-interactive
 
       - name: Install Functions dependencies
         if: github.event.inputs.target == 'functions' || github.event.inputs.target == 'all'
@@ -73,8 +96,7 @@ jobs:
         if: github.event.inputs.target == 'functions' || github.event.inputs.target == 'all'
         run: |
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          cd functions
-          firebase deploy --only functions --project ${{ github.event.inputs.project_id }} --non-interactive
+          firebase deploy --only functions --non-interactive
 
       - name: Notify success
         if: success()
